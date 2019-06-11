@@ -15,6 +15,10 @@ CONNECT = "CONNECT"
 RING = "RING"
 DASHES = "-----------"
 OUTPUTS_FOLDER = "Outputs"
+# This dictionary is a representation of the directory structure which should be generated before running this script
+# on the specified working directory.
+DIRECTORY_TREES = {"01": [2009, 2010], "02": [2011, 2012, 2013], "03": [2014, 2015, 2016]}
+LOG_FILE_EXTENSION = ".log"
 
 
 def process_regular_imb_files(working_directory=WORKING_DIRECTORY):
@@ -32,7 +36,7 @@ def process_regular_imb_files(working_directory=WORKING_DIRECTORY):
     os.mkdir(outputs_path)
 
     for file_ in files_to_process:
-        if file_.endswith(".log"):
+        if file_.endswith(LOG_FILE_EXTENSION):
             try:
                 # Get the full file path for the file being processed, and get the name of the file without the extension.
                 file_n = str(pathlib2.Path(working_directory, file_))
@@ -52,7 +56,7 @@ def process_regular_imb_files(working_directory=WORKING_DIRECTORY):
                 # Create the file and write the data into it.
                 # Move the file into a directory named after the file which was processed to generate it.
                 for i in range(0, len(parse_list)):
-                    created_file_name =file_name_use + "-" + str(i+1) + ".log"
+                    created_file_name = file_name_use + "-" + str(i+1) + LOG_FILE_EXTENSION
                     curr_f = open(created_file_name, "w")
                     curr_f.write(parse_list[i])
                     curr_f.close()
@@ -66,4 +70,9 @@ def process_regular_imb_files(working_directory=WORKING_DIRECTORY):
     return
 
 
-process_regular_imb_files()
+for current_key in DIRECTORY_TREES:
+    sub_directory_list = DIRECTORY_TREES[current_key]
+    for sub_dir in sub_directory_list:
+        working_dir = str(pathlib2.Path(WORKING_DIRECTORY, current_key, str(sub_dir)))
+        process_regular_imb_files(working_dir)
+
