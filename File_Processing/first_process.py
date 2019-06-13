@@ -70,9 +70,16 @@ def process_regular_imb_files(working_directory=WORKING_DIRECTORY):
     return
 
 
-for current_key in DIRECTORY_TREES:
-    sub_directory_list = DIRECTORY_TREES[current_key]
-    for sub_dir in sub_directory_list:
-        working_dir = str(pathlib2.Path(WORKING_DIRECTORY, current_key, str(sub_dir)))
-        process_regular_imb_files(working_dir)
+def do_process():
+    for current_key in DIRECTORY_TREES:
+        sub_directory_list = DIRECTORY_TREES[current_key]
+        for sub_dir in sub_directory_list:
+            working_dir = str(pathlib2.Path(WORKING_DIRECTORY, current_key, str(sub_dir)))
+            process_regular_imb_files(working_dir)
+    return
+
+
+do_process()
+
+
 

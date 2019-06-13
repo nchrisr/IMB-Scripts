@@ -5,8 +5,14 @@ import shutil
 import pathlib2
 import sys
 
+# Get the directory to organize from the command line.
+WORKING_DIRECTORY = None
+if len(sys.argv) < 2:
+    print("Incomplete Arguments... at lease one argument required")
+    exit(-1)
+else:
+    WORKING_DIRECTORY = sys.argv[1]
 
-WORKING_DIRECTORY = "C:\Users\CEOS\Desktop\IMB_LogFiles\IMB_LogFile_Archive"
 LOG_FILE_EXTENSION = ".log"
 """The dictionary below is used to represent the directory structure which the files will be sorted into.
    The number keys point to lists that represent the year the data was collected.
