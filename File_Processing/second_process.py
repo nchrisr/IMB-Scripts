@@ -3,6 +3,7 @@ import os
 import pathlib2
 import StringIO
 import pandas as pd
+import traceback
 
 # This dictionary is a representation of the directory structure which should be generated before running this script
 # on the specified working directory.
@@ -63,7 +64,7 @@ def second_imb_process(directory, year):
     """
      This function will execute the second process in handling the IMB log files.
      It will process the files which by calling different functions based on what year the files are from.
-     The 'directory' argument specifies the directory which the file is located in
+     The 'directory' argument specifies the directory which the files are located in
      The 'year' argument specifies what year the data in the file is from.
 
      It generates an error log file that describes all the files that had issues during the process,
@@ -104,6 +105,7 @@ def second_imb_process(directory, year):
                     # Catch errors and write them to error file and print them to screen as well.
                     print("Processing file {} failed.\n".format(curr_file))
                     print("\t"+str(e)+"\n")
+                    traceback.print_exc()
                     errors_fp.write("Processing file {} failed.\n".format(curr_file))
                     errors_fp.write("\t"+str(e)+"\n\n")
     errors_fp.close()
@@ -148,7 +150,11 @@ def second_process_for_first_folder(current_file, directory):
     connect_string = curr_line.strip()
     curr_line = file_pointer.readline()
 
+    while curr_line and ((DASHES in curr_line) or not (curr_line.strip())):
+        curr_line = file_pointer.readline()
     # If it gets here and there was no data found, there is probably no data in the file or it contains just 'rings'.
+    if "09282009" in current_file:
+        print("H")
     if not curr_line:
         print("File with no data found ... ")
         # If the file contained rings, store that. Rings are considered metadata.
@@ -168,8 +174,6 @@ def second_process_for_first_folder(current_file, directory):
             return None
     else:
         # Find the Buoy id.
-        while curr_line and ((DASHES in curr_line) or not (curr_line.strip())):
-            curr_line = file_pointer.readline()
         imb_id = curr_line.strip()
 
         # Find the start of the GPS table and load all the data from it into a string,
@@ -211,6 +215,19 @@ def second_process_for_first_folder(current_file, directory):
         # Use the datetime column as the index. Assign the appropriate headers as well using the variables at the top.
         gps_df = pd.read_csv(StringIO.StringIO(gps_data_table), header=None, index_col=0)
         gps_df.columns = GPS_HEADERS
+        gps_df.to_csv("xxt.csv")
+        #rows_to_shift = gps_df[gps_df[15].isnull()].index
+        rows_to_shift = gps_df[gps_df[15].isnull()].index
+        x = len(rows_to_shift)
+        count = 0
+        while x > 0:
+            prev = gps_df.loc[rows_to_shift, 1:]
+            xx = gps_df.loc[rows_to_shift, 1:].shift(periods=1, axis='columns')
+            gps_df.loc[rows_to_shift, 1:] = gps_df.loc[rows_to_shift, 1:].shift(periods=1, axis='columns')
+            gps_df.to_csv(str(count)+"f.csv")
+            rows_to_shift = gps_df[gps_df[15].isnull()].index
+            count+=1
+        #gps_df.columns = GPS_HEADERS
         output_one_df = pd.read_csv(StringIO.StringIO(output_one_data_table), header=None, index_col=0)
         output_one_df.columns = OUTPUT_ONE_HEADERS
 
@@ -265,6 +282,8 @@ def do_process(working_directory=WORKING_DIRECTORY):
 # second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test-IMB_Data_Backup\Outputs\IMB_03272010", 2010)
 
 
-do_process()
+# do_process()
+
+second_imb_process("C:\Users\CEOS\Desktop\Outputs\IMB_01122010", 2010)
 
 print("End of processing.")
