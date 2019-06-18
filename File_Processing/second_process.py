@@ -248,6 +248,10 @@ def second_process_for_first_folder(current_file, directory):
         return {"filename": name_to_use, "data": output_data_string, "metadata_only": False}
 
 
+def second_process_for_second_folder(current_file, directory):
+    return
+
+
 def do_process(working_directory=WORKING_DIRECTORY):
     """This function will go down to the the outputs directory within the sub directories in the 'working_directory'
     argument.
