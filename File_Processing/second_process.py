@@ -214,19 +214,25 @@ def second_process_for_first_folder(current_file, directory):
         # Read the gps data and the output1 data into data frames from the string,
         # Use the datetime column as the index. Assign the appropriate headers as well using the variables at the top.
         gps_df = pd.read_csv(StringIO.StringIO(gps_data_table), header=None, index_col=0)
-        gps_df.columns = GPS_HEADERS
+        #gps_df.columns = GPS_HEADERS
         gps_df.to_csv("xxt.csv")
-        #rows_to_shift = gps_df[gps_df[15].isnull()].index
         rows_to_shift = gps_df[gps_df[15].isnull()].index
+        #rows_to_shift = gps_df[gps_df['Checksum'].isnull()].index
         x = len(rows_to_shift)
         count = 0
         while x > 0:
-            prev = gps_df.loc[rows_to_shift, 1:]
-            xx = gps_df.loc[rows_to_shift, 1:].shift(periods=1, axis='columns')
-            gps_df.loc[rows_to_shift, 1:] = gps_df.loc[rows_to_shift, 1:].shift(periods=1, axis='columns')
+            prev = gps_df.loc[rows_to_shift]
+            prev.to_csv(str(count) + "prev.csv")
+            nxt = prev.shift(periods=1, axis=1)
+            nxts = nxt.loc[rows_to_shift, 6:]
+            nxt.loc[rows_to_shift, 6:] = nxts.shift(periods=-1, axis=1)
+            #nxt = gps_df.loc[rows_to_shift, '$GPGGA':].shift(periods=1, axis='columns')
+            nxt.to_csv(str(count)+"nxt.csv")
+            gps_df.loc[rows_to_shift] = gps_df.loc[rows_to_shift].shift(periods=1, axis=1)
             gps_df.to_csv(str(count)+"f.csv")
             rows_to_shift = gps_df[gps_df[15].isnull()].index
-            count+=1
+            x = len(rows_to_shift)
+            count += 1
         #gps_df.columns = GPS_HEADERS
         output_one_df = pd.read_csv(StringIO.StringIO(output_one_data_table), header=None, index_col=0)
         output_one_df.columns = OUTPUT_ONE_HEADERS
@@ -284,6 +290,6 @@ def do_process(working_directory=WORKING_DIRECTORY):
 
 # do_process()
 
-second_imb_process("C:\Users\CEOS\Desktop\Outputs\IMB_01122010", 2010)
+second_imb_process("/Users/kikanye/PycharmProjects/IMB-Scripts/second_process_tests/Outputs/IMB_01122010", 2010)
 
 print("End of processing.")
