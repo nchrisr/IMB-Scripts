@@ -3,6 +3,7 @@ import os
 import pathlib2
 import StringIO
 import pandas as pd
+import traceback
 
 # This dictionary is a representation of the directory structure which should be generated before running this script
 # on the specified working directory.
@@ -104,6 +105,7 @@ def second_imb_process(directory, year):
                     # Catch errors and write them to error file and print them to screen as well.
                     print("Processing file {} failed.\n".format(curr_file))
                     print("\t"+str(e)+"\n")
+                    traceback.print_exc()
                     errors_fp.write("Processing file {} failed.\n".format(curr_file))
                     errors_fp.write("\t"+str(e)+"\n\n")
     errors_fp.close()
@@ -148,6 +150,10 @@ def second_process_for_first_folder(current_file, directory):
     connect_string = curr_line.strip()
     curr_line = file_pointer.readline()
 
+    # Find the Buoy id.
+    while curr_line and ((DASHES in curr_line) or not (curr_line.strip())):
+        curr_line = file_pointer.readline()
+
     # If it gets here and there was no data found, there is probably no data in the file or it contains just 'rings'.
     if not curr_line:
         print("File with no data found ... ")
@@ -167,9 +173,7 @@ def second_process_for_first_folder(current_file, directory):
         else:
             return None
     else:
-        # Find the Buoy id.
-        while curr_line and ((DASHES in curr_line) or not (curr_line.strip())):
-            curr_line = file_pointer.readline()
+        # Store the Buoy id.
         imb_id = curr_line.strip()
 
         # Find the start of the GPS table and load all the data from it into a string,
