@@ -85,7 +85,8 @@ def second_imb_process(directory, year):
     if year in DIRECTORY_TREES["01"]:
         # For every file in the directory, process only the .log files, by calling the appropriate function.
         for curr_file in files_to_process:
-            if curr_file.endswith(LOG_EXTENSION):
+            # TODO: CHange this line so that it will process all files not just one.
+            if curr_file.endswith(LOG_EXTENSION) and "IMB_01122010-2" in curr_file:
                 try:
                     return_data = second_process_for_first_folder(curr_file, directory)
                     # If None was returned, this means that the file was an empty file
@@ -213,6 +214,7 @@ def second_process_for_first_folder(current_file, directory):
 
         # Read the gps data and the output1 data into data frames from the string,
         # Use the datetime column as the index. Assign the appropriate headers as well using the variables at the top.
+        print gps_data_table
         gps_df = pd.read_csv(StringIO.StringIO(gps_data_table), header=None, index_col=0)
         #gps_df.columns = GPS_HEADERS
         gps_df.to_csv("xxt.csv")
@@ -224,6 +226,7 @@ def second_process_for_first_folder(current_file, directory):
             prev = gps_df.loc[rows_to_shift]
             prev.to_csv(str(count) + "prev.csv")
             nxt = prev.shift(periods=1, axis=1)
+            nxt.to_csv(str(count)+"nxt.csv")
             nxts = nxt.loc[rows_to_shift, 6:]
             nxt.loc[rows_to_shift, 6:] = nxts.shift(periods=-1, axis=1)
             #nxt = gps_df.loc[rows_to_shift, '$GPGGA':].shift(periods=1, axis='columns')
@@ -290,6 +293,6 @@ def do_process(working_directory=WORKING_DIRECTORY):
 
 # do_process()
 
-second_imb_process("/Users/kikanye/PycharmProjects/IMB-Scripts/second_process_tests/Outputs/IMB_01122010", 2010)
+second_imb_process("C:\Users\CEOS\Desktop\Outputs\IMB_01122010", 2010)
 
 print("End of processing.")
