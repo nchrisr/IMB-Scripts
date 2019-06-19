@@ -3,7 +3,6 @@ import os
 import pathlib2
 import StringIO
 import pandas as pd
-import traceback
 
 # This dictionary is a representation of the directory structure which should be generated before running this script
 # on the specified working directory.
@@ -45,6 +44,7 @@ END_TRANSMIT = "END TRANSMIT"
 
 # Constants needed for successful parsing of data
 DASHES = "--------------------------------------------"
+BAD_GPS_DATA_LINE = "gps_data="
 GPS_TABLE = "------------- Parsed GPS Table -------------"
 OUTPUT_TABLE = "------------- Output1 Table ----------------"
 THERM_TABLE = "------------- Therm Table ------------------"
@@ -55,6 +55,7 @@ RINGS = "RINGS"
 CONNECTION_STRING = "CONNECTION STRING"
 IMB_ID = "IMB ID"
 TRANSMISSION_FINISHED_SUCCESSFULLY = "TRANSMISSION FINISHED SUCCESSFULLY"
+DATA_LINE = "DATA LINE AFTER CONNECTION STRING"
 
 # Name of the file containing error logs.
 ERRORS_FILE = "second_process_errors.txt"
@@ -122,6 +123,7 @@ def second_process_for_first_folder(current_file, directory):
        "filename"-> the file path where the processed data should be saved to.
        "data"-> A 'csv' string representation of the processed data.
        "metadata_only"-> A boolean value indicating whether or not the file has actual data or just metadata."""
+    data_line_after_connection = None
     ring_count = 0  # how many rings occurred before transmission of data.
     connect_string = ""  # The string that indicated the establishment of a connection.
     imb_id = ""  # The id of the Buoy.
@@ -151,6 +153,8 @@ def second_process_for_first_folder(current_file, directory):
 
     # Find the Buoy id.
     while curr_line and ((DASHES in curr_line) or not (curr_line.strip())):
+        if BAD_GPS_DATA_LINE in curr_line.lower():
+            data_line_after_connection = curr_line
         curr_line = file_pointer.readline()
 
     # If it gets here and there was no data found, there is probably no data in the file or it contains just 'rings'.
@@ -166,7 +170,8 @@ def second_process_for_first_folder(current_file, directory):
                            CONNECTION_STRING + "," + connect_string + "\n" + \
                            IMB_ID + "," + imb_id + "\n" + \
                            TRANSMISSION_FINISHED_SUCCESSFULLY + "," + str(transmission_completed) + "\n" + \
-                           "\n"
+                           DATA_LINE + "," + str(data_line_after_connection) + "\n" + "\n"
+
             name_to_use = str(pathlib2.Path(directory, imb_id + "-" + current_file.split('.')[0] + ".csv"))
             return {"filename": name_to_use, "data": top_metadata, "metadata_only": True}
         else:
