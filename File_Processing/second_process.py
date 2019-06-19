@@ -64,7 +64,7 @@ def second_imb_process(directory, year):
     """
      This function will execute the second process in handling the IMB log files.
      It will process the files which by calling different functions based on what year the files are from.
-     The 'directory' argument specifies the directory which the file is located in
+     The 'directory' argument specifies the directory which the files are located in
      The 'year' argument specifies what year the data in the file is from.
 
      It generates an error log file that describes all the files that had issues during the process,
@@ -95,7 +95,7 @@ def second_imb_process(directory, year):
                         if return_data["metadata_only"]:
                             print("{} contains only metadata\n".format(return_data["filename"]))
                             errors_fp.write("{} contains only metadata \n\n".format(return_data["filename"]))
-                        output_file_fp = open(return_data["filename"], "w")
+                        output_file_fp = open(return_data["filename"], "wb")
                         output_file_fp.write(return_data["data"])
                         output_file_fp.close()
                     else:
@@ -105,7 +105,6 @@ def second_imb_process(directory, year):
                     # Catch errors and write them to error file and print them to screen as well.
                     print("Processing file {} failed.\n".format(curr_file))
                     print("\t"+str(e)+"\n")
-                    traceback.print_exc()
                     errors_fp.write("Processing file {} failed.\n".format(curr_file))
                     errors_fp.write("\t"+str(e)+"\n\n")
     errors_fp.close()
@@ -211,10 +210,33 @@ def second_process_for_first_folder(current_file, directory):
                        TRANSMISSION_FINISHED_SUCCESSFULLY + "," + str(transmission_completed) + "\n" +\
                        "\n"
 
-        # Read the gps data and the output1 data into data frames from the string,
+        # Read in the csv string for the gps data and process it so that the data moves into the right columns.
         # Use the datetime column as the index. Assign the appropriate headers as well using the variables at the top.
         gps_df = pd.read_csv(StringIO.StringIO(gps_data_table), header=None, index_col=0)
+        # Pick out the rows where the checksum value is not present.
+        rows_to_shift = gps_df[gps_df[15].isnull()].index
+
+        # Make them all strings to avoid pandas bug.
+        gps_df_as_strings = gps_df.astype(str)
+        num_bad_rows = len(rows_to_shift)
+        count = 0
+        # The checksum field can be assumed to be present for all rows, then shift the data until there is data in the
+        # checksum field for all rows.
+        while num_bad_rows > 0:
+            # shift the data, get a csv string and re-read that into a dataframe to maintain the previous datatypes.
+            gps_df_as_strings.loc[rows_to_shift] = gps_df_as_strings.loc[rows_to_shift].shift(periods=1, axis=1)
+            gps_df_new_string = gps_df_as_strings.to_csv(header=None)
+            gps_df = pd.read_csv(StringIO.StringIO(gps_df_new_string), header=None, index_col=0)
+            gps_df.to_csv(str(count)+"f.csv")
+
+            # Get the new set of data that needs their data shifted
+            rows_to_shift = gps_df[gps_df[15].isnull()].index
+            num_bad_rows = len(rows_to_shift)
+            count += 1
+        # Assign the column names after processing.
         gps_df.columns = GPS_HEADERS
+
+        # Read in output1 data into data frame from a string.
         output_one_df = pd.read_csv(StringIO.StringIO(output_one_data_table), header=None, index_col=0)
         output_one_df.columns = OUTPUT_ONE_HEADERS
 
@@ -269,6 +291,8 @@ def do_process(working_directory=WORKING_DIRECTORY):
 # second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test-IMB_Data_Backup\Outputs\IMB_03272010", 2010)
 
 
-do_process()
+# do_process()
+
+second_imb_process("C:\Users\CEOS\Desktop\Outputs\IMB_01122010", 2010)
 
 print("End of processing.")
