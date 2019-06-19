@@ -3,7 +3,6 @@ import os
 import pathlib2
 import StringIO
 import pandas as pd
-import traceback
 
 # This dictionary is a representation of the directory structure which should be generated before running this script
 # on the specified working directory.
@@ -297,6 +296,6 @@ def do_process(working_directory=WORKING_DIRECTORY):
 
 # do_process()
 
-second_imb_process("C:\Users\CEOS\Desktop\Outputs\IMB_01122010", 2010)
+# second_imb_process("C:\Users\CEOS\Desktop\Outputs\IMB_01122010", 2010)
 
 print("End of processing.")
