@@ -152,7 +152,7 @@ def second_process_for_first_folder(current_file, directory):
     curr_line = file_pointer.readline()
 
     # Find the Buoy id.
-    while curr_line and ((DASHES in curr_line) or not (curr_line.strip())):
+    while (curr_line and ((DASHES in curr_line) or not(curr_line.strip()))) or (BAD_GPS_DATA_LINE in curr_line.lower()):
         if BAD_GPS_DATA_LINE in curr_line.lower():
             data_line_after_connection = curr_line
         curr_line = file_pointer.readline()
@@ -212,8 +212,8 @@ def second_process_for_first_folder(current_file, directory):
         top_metadata = RINGS + "," + str(ring_count) + "\n" + \
                        CONNECTION_STRING + "," + connect_string + "\n" + \
                        IMB_ID + "," + imb_id + "\n" + \
-                       TRANSMISSION_FINISHED_SUCCESSFULLY + "," + str(transmission_completed) + "\n" +\
-                       "\n"
+                       TRANSMISSION_FINISHED_SUCCESSFULLY + "," + str(transmission_completed) + "\n" + \
+                       DATA_LINE + "," + str(data_line_after_connection) + "\n" + "\n"
 
         # Read in the csv string for the gps data and process it so that the data moves into the right columns.
         # Use the datetime column as the index. Assign the appropriate headers as well using the variables at the top.
@@ -232,7 +232,6 @@ def second_process_for_first_folder(current_file, directory):
             gps_df_as_strings.loc[rows_to_shift] = gps_df_as_strings.loc[rows_to_shift].shift(periods=1, axis=1)
             gps_df_new_string = gps_df_as_strings.to_csv(header=None)
             gps_df = pd.read_csv(StringIO.StringIO(gps_df_new_string), header=None, index_col=0)
-            gps_df.to_csv(str(count)+"f.csv")
 
             # Get the new set of data that needs their data shifted
             rows_to_shift = gps_df[gps_df[15].isnull()].index
@@ -259,6 +258,10 @@ def second_process_for_first_folder(current_file, directory):
         for i in range(1, (max_columns_therm - len(THERM_HEADERS)) + 1):
             headers_to_use.append(THERMISTOR_TEMPERATURE_HEADERS + str(i))
         therm_df.columns = headers_to_use
+
+        if not((len(gps_df) == len(therm_df)) and (len(therm_df) == len(output_one_df))):
+            raise Exception("Sections of the file have different number of row(s), "
+                            "this file should be processed by hand.")
 
         # Do an inner join on all the data using the Datetime column as the index.
         first_merge_df = pd.merge(gps_df, output_one_df, left_index=True, right_index=True)
@@ -296,8 +299,8 @@ def do_process(working_directory=WORKING_DIRECTORY):
 # second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test-IMB_Data_Backup\Outputs\IMB_03272010", 2010)
 
 
-# do_process()
+do_process()
 
-second_imb_process("C:\Users\CEOS\Desktop\Outputs\IMB_01122010", 2010)
+#second_imb_process("C:\Users\CEOS\Desktop\Outputs\IMB_07112010", 2010)
 
 print("End of processing.")
