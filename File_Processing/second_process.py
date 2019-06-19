@@ -96,7 +96,7 @@ def second_imb_process(directory, year):
                         if return_data["metadata_only"]:
                             print("{} contains only metadata\n".format(return_data["filename"]))
                             errors_fp.write("{} contains only metadata \n\n".format(return_data["filename"]))
-                        output_file_fp = open(return_data["filename"], "w")
+                        output_file_fp = open(return_data["filename"], "wb")
                         output_file_fp.write(return_data["data"])
                         output_file_fp.close()
                     else:
@@ -212,31 +212,33 @@ def second_process_for_first_folder(current_file, directory):
                        TRANSMISSION_FINISHED_SUCCESSFULLY + "," + str(transmission_completed) + "\n" +\
                        "\n"
 
-        # Read the gps data and the output1 data into data frames from the string,
+        # Read in the csv string for the gps data and process it so that the data moves into the right columns.
         # Use the datetime column as the index. Assign the appropriate headers as well using the variables at the top.
-        print gps_data_table
         gps_df = pd.read_csv(StringIO.StringIO(gps_data_table), header=None, index_col=0)
-        #gps_df.columns = GPS_HEADERS
-        gps_df.to_csv("xxt.csv")
+        # Pick out the rows where the checksum value is not present.
         rows_to_shift = gps_df[gps_df[15].isnull()].index
-        #rows_to_shift = gps_df[gps_df['Checksum'].isnull()].index
-        x = len(rows_to_shift)
+
+        # Make them all strings to avoid pandas bug.
+        gps_df_as_strings = gps_df.astype(str)
+        num_bad_rows = len(rows_to_shift)
         count = 0
-        while x > 0:
-            prev = gps_df.loc[rows_to_shift]
-            prev.to_csv(str(count) + "prev.csv")
-            nxt = prev.shift(periods=1, axis=1)
-            nxt.to_csv(str(count)+"nxt.csv")
-            nxts = nxt.loc[rows_to_shift, 6:]
-            nxt.loc[rows_to_shift, 6:] = nxts.shift(periods=-1, axis=1)
-            #nxt = gps_df.loc[rows_to_shift, '$GPGGA':].shift(periods=1, axis='columns')
-            nxt.to_csv(str(count)+"nxt.csv")
-            gps_df.loc[rows_to_shift] = gps_df.loc[rows_to_shift].shift(periods=1, axis=1)
+        # The checksum field can be assumed to be present for all rows, then shift the data until there is data in the
+        # checksum field for all rows.
+        while num_bad_rows > 0:
+            # shift the data, get a csv string and re-read that into a dataframe to maintain the previous datatypes.
+            gps_df_as_strings.loc[rows_to_shift] = gps_df_as_strings.loc[rows_to_shift].shift(periods=1, axis=1)
+            gps_df_new_string = gps_df_as_strings.to_csv(header=None)
+            gps_df = pd.read_csv(StringIO.StringIO(gps_df_new_string), header=None, index_col=0)
             gps_df.to_csv(str(count)+"f.csv")
+
+            # Get the new set of data that needs their data shifted
             rows_to_shift = gps_df[gps_df[15].isnull()].index
-            x = len(rows_to_shift)
+            num_bad_rows = len(rows_to_shift)
             count += 1
-        #gps_df.columns = GPS_HEADERS
+        # Assign the column names after processing.
+        gps_df.columns = GPS_HEADERS
+
+        # Read in output1 data into data frame from a string.
         output_one_df = pd.read_csv(StringIO.StringIO(output_one_data_table), header=None, index_col=0)
         output_one_df.columns = OUTPUT_ONE_HEADERS
 
