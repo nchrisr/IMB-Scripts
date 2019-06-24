@@ -305,6 +305,7 @@ def second_process_for_first_file_type(current_file, directory):
 
 
 def second_process_for_second_folder(current_file, directory):
+
     return
 
 
