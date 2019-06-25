@@ -44,6 +44,7 @@ END_TRANSMIT = "END TRANSMIT"
 
 # Constants needed for successful parsing of data
 DASHES = "--------------------------------------------"
+BAD_GPS_DATA_LINE = "gps_data="
 GPS_TABLE = "------------- Parsed GPS Table -------------"
 OUTPUT_TABLE = "------------- Output1 Table ----------------"
 THERM_TABLE = "------------- Therm Table ------------------"
@@ -54,6 +55,7 @@ RINGS = "RINGS"
 CONNECTION_STRING = "CONNECTION STRING"
 IMB_ID = "IMB ID"
 TRANSMISSION_FINISHED_SUCCESSFULLY = "TRANSMISSION FINISHED SUCCESSFULLY"
+DATA_LINE = "DATA LINE AFTER CONNECTION STRING"
 
 # Name of the file containing error logs.
 ERRORS_FILE = "second_process_errors.txt"
@@ -77,7 +79,7 @@ def second_imb_process(directory, year):
 
     # Get a list of all the files in the directory and process them.
     files_to_process = os.listdir(directory)
-    print("{} file(s) will be processed.\n".format(len(files_to_process)))
+    print("\n{} file(s) will be processed.\n".format(len(files_to_process)))
 
     # Decide how to process the files based on what directory they are in and what year they are from.
     # The files need to be organized by year prior for this to work.
@@ -86,7 +88,7 @@ def second_imb_process(directory, year):
         for curr_file in files_to_process:
             if curr_file.endswith(LOG_EXTENSION):
                 try:
-                    return_data = second_process_for_first_folder(curr_file, directory)
+                    return_data = second_process_for_first_file_type(curr_file, directory)
                     # If None was returned, this means that the file was an empty file
                     if return_data is not None:
                         # If the file contains only metadata, state that in the .log file
@@ -94,6 +96,8 @@ def second_imb_process(directory, year):
                         if return_data["metadata_only"]:
                             print("{} contains only metadata\n".format(return_data["filename"]))
                             errors_fp.write("{} contains only metadata \n\n".format(return_data["filename"]))
+                        else:
+                            print("\nSuccessfully processed file {}\n".format(curr_file))
                         output_file_fp = open(return_data["filename"], "wb")
                         output_file_fp.write(return_data["data"])
                         output_file_fp.close()
@@ -111,7 +115,7 @@ def second_imb_process(directory, year):
     return
 
 
-def second_process_for_first_folder(current_file, directory):
+def second_process_for_first_file_type(current_file, directory):
     """This function will handle the processing of log files generated in 2009 and 2010 (regarded as '01' files).
 
        -> 'current_file' is the name of the file being processed
@@ -121,6 +125,7 @@ def second_process_for_first_folder(current_file, directory):
        "filename"-> the file path where the processed data should be saved to.
        "data"-> A 'csv' string representation of the processed data.
        "metadata_only"-> A boolean value indicating whether or not the file has actual data or just metadata."""
+    data_line_after_connection = None
     ring_count = 0  # how many rings occurred before transmission of data.
     connect_string = ""  # The string that indicated the establishment of a connection.
     imb_id = ""  # The id of the Buoy.
@@ -149,7 +154,9 @@ def second_process_for_first_folder(current_file, directory):
     curr_line = file_pointer.readline()
 
     # Find the Buoy id.
-    while curr_line and ((DASHES in curr_line) or not (curr_line.strip())):
+    while curr_line and (((DASHES in curr_line) or not(curr_line.strip())) or (BAD_GPS_DATA_LINE in curr_line.lower())):
+        if BAD_GPS_DATA_LINE in curr_line.lower():
+            data_line_after_connection = curr_line
         curr_line = file_pointer.readline()
 
     # If it gets here and there was no data found, there is probably no data in the file or it contains just 'rings'.
@@ -165,7 +172,8 @@ def second_process_for_first_folder(current_file, directory):
                            CONNECTION_STRING + "," + connect_string + "\n" + \
                            IMB_ID + "," + imb_id + "\n" + \
                            TRANSMISSION_FINISHED_SUCCESSFULLY + "," + str(transmission_completed) + "\n" + \
-                           "\n"
+                           DATA_LINE + "," + str(data_line_after_connection) + "\n" + "\n"
+
             name_to_use = str(pathlib2.Path(directory, imb_id + "-" + current_file.split('.')[0] + ".csv"))
             return {"filename": name_to_use, "data": top_metadata, "metadata_only": True}
         else:
@@ -206,45 +214,45 @@ def second_process_for_first_folder(current_file, directory):
         top_metadata = RINGS + "," + str(ring_count) + "\n" + \
                        CONNECTION_STRING + "," + connect_string + "\n" + \
                        IMB_ID + "," + imb_id + "\n" + \
-                       TRANSMISSION_FINISHED_SUCCESSFULLY + "," + str(transmission_completed) + "\n" +\
-                       "\n"
+                       TRANSMISSION_FINISHED_SUCCESSFULLY + "," + str(transmission_completed) + "\n" + \
+                       DATA_LINE + "," + str(data_line_after_connection) + "\n" + "\n"
 
-        # Read in the csv string for the gps data and process it so that the data moves into the right columns.
-        # Use the datetime column as the index. Assign the appropriate headers as well using the variables at the top.
+        # Check if the gps data contains invalid characters.
+        try:
+            temp = gps_data_table.decode('ascii')
+        except Exception as e:
+            raise Exception("NON ascii characters detected in the file being processed.\n\t"+str(e))
+
+        # Read the csv string for the gps data into a dataframe.
         gps_df = pd.read_csv(StringIO.StringIO(gps_data_table), header=None, index_col=0)
-        # Pick out the rows where the checksum value is not present.
-        rows_to_shift = gps_df[gps_df[15].isnull()].index
 
-        # Make them all strings to avoid pandas bug.
-        gps_df_as_strings = gps_df.astype(str)
-        num_bad_rows = len(rows_to_shift)
-        count = 0
-        # The checksum field can be assumed to be present for all rows, then shift the data until there is data in the
-        # checksum field for all rows.
-        while num_bad_rows > 0:
-            # shift the data, get a csv string and re-read that into a dataframe to maintain the previous datatypes.
-            gps_df_as_strings.loc[rows_to_shift] = gps_df_as_strings.loc[rows_to_shift].shift(periods=1, axis=1)
-            gps_df_new_string = gps_df_as_strings.to_csv(header=None)
-            gps_df = pd.read_csv(StringIO.StringIO(gps_df_new_string), header=None, index_col=0)
-            gps_df.to_csv(str(count)+"f.csv")
+        # Check if the output-1 data contains invalid characters
+        try:
+            temp = output_one_data_table.decode('ascii')
+        except Exception as e:
+            raise Exception("NON ascii characters detected in the file being processed.\n\t"+str(e))
 
-            # Get the new set of data that needs their data shifted
-            rows_to_shift = gps_df[gps_df[15].isnull()].index
-            num_bad_rows = len(rows_to_shift)
-            count += 1
-        # Assign the column names after processing.
-        gps_df.columns = GPS_HEADERS
-
-        # Read in output1 data into data frame from a string.
+        # Read in output1 data into data frame from a string, index with the datetime column and assign headers.
         output_one_df = pd.read_csv(StringIO.StringIO(output_one_data_table), header=None, index_col=0)
         output_one_df.columns = OUTPUT_ONE_HEADERS
 
+        # Check if the temperature data contains invalid characters
+        try:
+            temp = therm_data_table.decode('ascii')
+        except Exception as e:
+            raise Exception("NON ascii characters detected in the file being processed.\n\t"+str(e))
+
         # Read the therm table data and index with the datetime column as well.
         therm_df = pd.read_csv(StringIO.StringIO(therm_data_table), header=None, index_col=0)
-        max_columns_therm = 0
+
+        # All the data should have the same number of rows if not there is an issue.
+        if not((len(gps_df) == len(therm_df)) and (len(therm_df) == len(output_one_df))):
+            raise Exception("Sections of the file have different number of row(s), "
+                            "this file should be processed by hand.")
 
         # This algorithm determines the number of headers to add to the header list for therm data and
         # adds them to the data frame
+        max_columns_therm = 0
         for i in range(0, len(therm_df)):
             curr_num_columns = len(therm_df.iloc[i])
             if curr_num_columns > max_columns_therm:
@@ -253,6 +261,33 @@ def second_process_for_first_folder(current_file, directory):
         for i in range(1, (max_columns_therm - len(THERM_HEADERS)) + 1):
             headers_to_use.append(THERMISTOR_TEMPERATURE_HEADERS + str(i))
         therm_df.columns = headers_to_use
+
+        # Process the gps data so that the data moves into the right columns.
+        # Use the datetime column as the index. Assign the appropriate headers as well using the variables at the top.
+        # Pick out the rows where the checksum value is not present.
+        rows_to_shift = gps_df[gps_df[15].isnull()].index
+
+        # Make them all strings to avoid pandas bug.
+        gps_df_as_strings = gps_df.astype(str)
+        num_bad_rows = len(rows_to_shift)
+        count = 0
+        shift_count = 0 # Number of times shift has occurred.
+        # The checksum field can be assumed to be present for all rows, then shift the data until there is data in the
+        # checksum field for all rows.
+        while (num_bad_rows > 0) and (shift_count <= 16):
+            # If you have shifted more than 16 times, the checksum values probably do not exist.
+            # shift the data, get a csv string and re-read that into a dataframe to maintain the previous datatypes.
+            gps_df_as_strings.loc[rows_to_shift] = gps_df_as_strings.loc[rows_to_shift].shift(periods=1, axis=1)
+            gps_df_new_string = gps_df_as_strings.to_csv(header=None)
+            gps_df = pd.read_csv(StringIO.StringIO(gps_df_new_string), header=None, index_col=0)
+
+            # Get the new set of data that needs their data shifted
+            rows_to_shift = gps_df[gps_df[15].isnull()].index
+            num_bad_rows = len(rows_to_shift)
+            count += 1
+            shift_count += 1
+        # Assign the column names after processing.
+        gps_df.columns = GPS_HEADERS
 
         # Do an inner join on all the data using the Datetime column as the index.
         first_merge_df = pd.merge(gps_df, output_one_df, left_index=True, right_index=True)
@@ -270,6 +305,7 @@ def second_process_for_first_folder(current_file, directory):
 
 
 def second_process_for_second_folder(current_file, directory):
+
     return
 
 
@@ -286,7 +322,10 @@ def do_process(working_directory=WORKING_DIRECTORY):
             list_of_directories = os.listdir(current_directory)
             for directory in list_of_directories:
                 full_dir_path = str(pathlib2.Path(current_directory, directory))
-                second_imb_process(full_dir_path, year)
+                if (pathlib2.Path(full_dir_path)).is_dir():
+                    second_imb_process(full_dir_path, year)
+                else:
+                    print("Invalid directory path {}".format(full_dir_path))
 
     return
 
@@ -294,8 +333,8 @@ def do_process(working_directory=WORKING_DIRECTORY):
 # second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test-IMB_Data_Backup\Outputs\IMB_03272010", 2010)
 
 
-# do_process()
+do_process()
 
-# second_imb_process("C:\Users\CEOS\Desktop\Outputs\IMB_01122010", 2010)
+#second_imb_process("C:\Users\CEOS\Desktop\Outputs\IMB_07112010", 2010)
 
 print("End of processing.")
