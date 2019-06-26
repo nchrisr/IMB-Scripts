@@ -2,7 +2,9 @@ import sys
 import os
 import pathlib2
 import StringIO
+import re
 import pandas as pd
+import traceback
 
 # This dictionary is a representation of the directory structure which should be generated before running this script
 # on the specified working directory.
@@ -27,6 +29,8 @@ THERM_HEADERS = ["Battery Voltage"]
 # Template for Therm data headers.
 THERMISTOR_TEMPERATURE_HEADERS = "Thermistor Temperature-"
 
+SECOND_DATA_TYPE_HEADERS = []+GPS_HEADERS[0:-3]+OUTPUT_ONE_HEADERS+THERM_HEADERS
+
 
 WORKING_DIRECTORY = None
 if len(sys.argv) < 2:
@@ -42,13 +46,16 @@ CONNECT = "CONNECT"
 RING = "RING"
 END_TRANSMIT = "END TRANSMIT"
 
-# Constants needed for successful parsing of data
+# Constants needed for successful parsing of data for first file format.
 DASHES = "--------------------------------------------"
 BAD_GPS_DATA_LINE = "gps_data="
 GPS_TABLE = "------------- Parsed GPS Table -------------"
 OUTPUT_TABLE = "------------- Output1 Table ----------------"
 THERM_TABLE = "------------- Therm Table ------------------"
 LOG_EXTENSION = ".log"
+
+# Constants needed for successful parsing of data for second file format.
+IMB_data_table = "----------------IMB_data--------------------"
 
 # Constants needed for metadata.
 RINGS = "RINGS"
@@ -108,6 +115,19 @@ def second_imb_process(directory, year):
                     # Catch errors and write them to error file and print them to screen as well.
                     print("Processing file {} failed.\n".format(curr_file))
                     print("\t"+str(e)+"\n")
+                    traceback.print_exc()
+                    errors_fp.write("Processing file {} failed.\n".format(curr_file))
+                    errors_fp.write("\t"+str(e)+"\n\n")
+
+    elif year in DIRECTORY_TREES["02"]:
+        for curr_file in files_to_process:
+            if curr_file.endswith(LOG_EXTENSION):
+                try:
+                    return_data = second_process_for_second_folder(curr_file, directory)
+                except Exception as e:
+                    print("Processing file {} failed.\n".format(curr_file))
+                    print("\t"+str(e)+"\n")
+                    traceback.print_exc()
                     errors_fp.write("Processing file {} failed.\n".format(curr_file))
                     errors_fp.write("\t"+str(e)+"\n\n")
     errors_fp.close()
@@ -202,7 +222,7 @@ def second_process_for_first_file_type(current_file, directory):
         curr_line = file_pointer.readline()
 
         # Look for an indication that the end of the transmission has been reached.
-        # Either a bunch of dashes text saying the transmission is finished.
+        # Either a bunch of dashes or text saying the transmission is finished.
         while curr_line and (DASHES not in curr_line) and (END_TRANSMIT not in curr_line):
             if curr_line.strip():
                 therm_data_table += (curr_line.strip()) + "\n"  # Deals with excess new line characters.
@@ -305,8 +325,127 @@ def second_process_for_first_file_type(current_file, directory):
 
 
 def second_process_for_second_folder(current_file, directory):
+    """This function will handle the processing of log files generated in 2009 and 2010 (regarded as '01' files).
 
-    return
+       -> 'current_file' is the name of the file being processed
+       -> 'directory' is the path to the directory which contains the file being processed.
+       -> It will return a dictionary with three key-value pairs.
+
+       "filename"-> the file path where the processed data should be saved to.
+       "data"-> A 'csv' string representation of the processed data.
+       "metadata_only"-> A boolean value indicating whether or not the file has actual data or just metadata."""
+    data_line_after_connection = None
+    ring_count = 0  # how many rings occurred before transmission of data.
+    connect_string = ""  # The string that indicated the establishment of a connection.
+    imb_id = ""  # The id of the Buoy.
+
+    # Strings to store the data from the different tables.
+    data_table = ""
+
+    # Did the transmission finish or was it broken abruptly.
+    transmission_completed = True
+
+    # Make the full path of the file to be processed and read it in as bytes.
+    file_path = str(pathlib2.Path(directory, current_file))
+    file_pointer = open(file_path, 'rb')
+
+    # Read in the file line by line.
+    curr_line = file_pointer.readline()
+
+    # Get the connection string and count the number of rings.
+    while curr_line and (CONNECT not in curr_line):
+        if (curr_line.strip()).lower() == RING.lower():
+            ring_count += 1
+        curr_line = file_pointer.readline()
+    connect_string = curr_line.strip()
+    curr_line = file_pointer.readline()
+
+    # Find the Buoy id.
+    while curr_line and (((DASHES in curr_line) or not(curr_line.strip())) or (BAD_GPS_DATA_LINE in curr_line.lower())):
+        if BAD_GPS_DATA_LINE in curr_line.lower():
+            data_line_after_connection = curr_line
+        curr_line = file_pointer.readline()
+
+    # If it gets here and there was no data found, there is probably no data in the file or it contains just 'rings'.
+    if not curr_line:
+        print("File with no data found ... ")
+        # If the file contained rings, store that. Rings are considered metadata.
+        # If there were no rings, then it was probably an empty file.
+        if ring_count > 0:
+            transmission_completed = False
+            connect_string = str(None)
+            imb_id = str(None)
+            top_metadata = RINGS + "," + str(ring_count) + "\n" + \
+                           CONNECTION_STRING + "," + connect_string + "\n" + \
+                           IMB_ID + "," + imb_id + "\n" + \
+                           TRANSMISSION_FINISHED_SUCCESSFULLY + "," + str(transmission_completed) + "\n" + \
+                           DATA_LINE + "," + str(data_line_after_connection) + "\n" + "\n"
+
+            name_to_use = str(pathlib2.Path(directory, imb_id + "-" + current_file.split('.')[0] + ".csv"))
+            return {"filename": name_to_use, "data": top_metadata, "metadata_only": True}
+        else:
+            return None
+    else:
+        # Store the Buoy id.
+        imb_id = curr_line.strip()
+
+        # Find the start of the IMB_data table and load all the data from it into a string,
+        # and remove excess newline characters.
+        while curr_line and (IMB_data_table not in curr_line):
+            curr_line = file_pointer.readline()
+        curr_line = file_pointer.readline()
+
+        # Look for an indication that the end of the transmission has been reached.
+        # Either a bunch of dashes or text saying the transmission is finished.
+        while curr_line and (curr_line.replace(DASHES, '')) and (END_TRANSMIT not in curr_line):
+            if DASHES in curr_line:
+                curr_line = curr_line.replace(DASHES, '')
+            if curr_line.strip():
+                # TODO: COntinue algorithm from here
+                line_list = re.split('("\d+-\d+-\d+ \d+:\d+:\d+")', curr_line)
+                data = ""
+                data_set_count = 0
+                for index in range(1, len(line_list)):
+                    #if line_list[index].strip():
+                    if line_list[index][-1] == ',':
+                        print("H")
+                        #line_list[index] = line_list[index].rstrip(',')
+                    data += (line_list[index]).strip()
+                    data_set_count += 1
+                    if data_set_count >= 2:
+                        data_set_count = 0
+                        data_table += data + "\n"  # Deals with excess new line characters.
+                        data = ""
+            curr_line = file_pointer.readline()
+        if not ((DASHES in curr_line) or (END_TRANSMIT in curr_line)):
+            transmission_completed = False
+
+        # Make the string for the metadata that will be at the top of the output file.
+        top_metadata = RINGS + "," + str(ring_count) + "\n" + \
+                       CONNECTION_STRING + "," + connect_string + "\n" + \
+                       IMB_ID + "," + imb_id + "\n" + \
+                       TRANSMISSION_FINISHED_SUCCESSFULLY + "," + str(transmission_completed) + "\n" + \
+                       DATA_LINE + "," + str(data_line_after_connection) + "\n" + "\n"
+
+        curr_df = pd.read_csv(StringIO.StringIO(data_table), header=None, index_col=0, engine='python')
+
+        # This algorithm determines the number of headers to add to the header list and adds them to the data frame
+        max_columns_therm = 0
+        for i in range(0, len(curr_df)):
+            curr_num_columns = len(curr_df.iloc[i])
+            if curr_num_columns > max_columns_therm:
+                max_columns_therm = curr_num_columns
+
+        headers_to_use = [] + SECOND_DATA_TYPE_HEADERS
+        for i in range(1, (max_columns_therm - len(THERM_HEADERS)) + 1):
+            headers_to_use.append(THERMISTOR_TEMPERATURE_HEADERS + str(i))
+        curr_df.columns = headers_to_use
+
+        curr_df.index.names = ["Device_DateTime_UTC"]
+        curr_df_string = curr_df.to_csv()
+
+        name_to_use = str(pathlib2.Path(directory, imb_id + "-" + current_file.split('.')[0] + ".csv"))
+        return {"filename": name_to_use, "data": curr_df_string, "metadata_only": False}
 
 
 def do_process(working_directory=WORKING_DIRECTORY):
@@ -333,8 +472,10 @@ def do_process(working_directory=WORKING_DIRECTORY):
 # second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test-IMB_Data_Backup\Outputs\IMB_03272010", 2010)
 
 
-do_process()
+# do_process()
 
-#second_imb_process("C:\Users\CEOS\Desktop\Outputs\IMB_07112010", 2010)
+# second_imb_process("C:\Users\CEOS\Desktop\Outputs\IMB_07112010", 2010)
+
+second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_02272011", 2011)
 
 print("End of processing.")
