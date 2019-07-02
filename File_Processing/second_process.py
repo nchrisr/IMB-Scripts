@@ -5,6 +5,7 @@ import StringIO
 import re
 import pandas as pd
 import traceback
+import csv
 
 # This dictionary is a representation of the directory structure which should be generated before running this script
 # on the specified working directory.
@@ -29,6 +30,8 @@ THERM_HEADERS = ["Battery Voltage"]
 # Template for Therm data headers.
 THERMISTOR_TEMPERATURE_HEADERS = "Thermistor Temperature-"
 
+# Headers for second data type
+SECOND_DATA_TYPE_INTERIM_HEADERS = ["DATETIME_UTC", "GPS_STRING"]+OUTPUT_ONE_HEADERS+THERM_HEADERS
 SECOND_DATA_TYPE_HEADERS = []+GPS_HEADERS[0:-3]+OUTPUT_ONE_HEADERS+THERM_HEADERS
 
 
@@ -402,8 +405,9 @@ def second_process_for_second_folder(current_file, directory):
                 curr_line = curr_line.replace(DASHES, '')
             if curr_line.strip():
                 # TODO: COntinue algorithm from here
-                line_list = re.split('("\d+-\d+-\d+ \d+:\d+:\d+")', curr_line)
-                data = ""
+                line_list = re.split('(\d+-\d+-\d+ \d+:\d+:\d+")', curr_line)
+                #line_list = curr_line.split('"$GPGGA')
+                data = '"'
                 data_set_count = 0
                 for index in range(1, len(line_list)):
                     #if line_list[index].strip():
@@ -415,7 +419,7 @@ def second_process_for_second_folder(current_file, directory):
                     if data_set_count >= 2:
                         data_set_count = 0
                         data_table += data + "\n"  # Deals with excess new line characters.
-                        data = ""
+                        data = '"'
             curr_line = file_pointer.readline()
         if not ((DASHES in curr_line) or (END_TRANSMIT in curr_line)):
             transmission_completed = False
@@ -427,7 +431,16 @@ def second_process_for_second_folder(current_file, directory):
                        TRANSMISSION_FINISHED_SUCCESSFULLY + "," + str(transmission_completed) + "\n" + \
                        DATA_LINE + "," + str(data_line_after_connection) + "\n" + "\n"
 
-        curr_df = pd.read_csv(StringIO.StringIO(data_table), header=None, index_col=0, engine='python')
+        rows = csv.reader(StringIO.StringIO(data_table))
+        rows = list(rows)
+        max_length = max(len(row) for row in rows)
+
+        headers_to_use = [] + SECOND_DATA_TYPE_INTERIM_HEADERS
+        for i in range(1, (max_length - len(SECOND_DATA_TYPE_INTERIM_HEADERS)) + 1):
+            headers_to_use.append(THERMISTOR_TEMPERATURE_HEADERS + str(i))
+
+        curr_df = pd.read_csv(StringIO.StringIO(data_table), header=None, names=headers_to_use, index_col=0)
+        curr_df.to_csv("sample.csv")
 
         # This algorithm determines the number of headers to add to the header list and adds them to the data frame
         max_columns_therm = 0
@@ -443,9 +456,10 @@ def second_process_for_second_folder(current_file, directory):
 
         curr_df.index.names = ["Device_DateTime_UTC"]
         curr_df_string = curr_df.to_csv()
+        output_data_string = top_metadata + curr_df_string
 
         name_to_use = str(pathlib2.Path(directory, imb_id + "-" + current_file.split('.')[0] + ".csv"))
-        return {"filename": name_to_use, "data": curr_df_string, "metadata_only": False}
+        return {"filename": name_to_use, "data": output_data_string, "metadata_only": False}
 
 
 def do_process(working_directory=WORKING_DIRECTORY):
