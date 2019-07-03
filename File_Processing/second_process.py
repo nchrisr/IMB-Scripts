@@ -458,6 +458,20 @@ def second_process_for_second_folder(current_file, directory):
 
         curr_df = pd.read_csv(StringIO.StringIO(data_table), header=None, names=headers_to_use, index_col=0)
         curr_df.to_csv("sample.csv")
+        row_count = len(curr_df)
+        drop_indeces = []
+        for row in range(0, row_count-2):
+            if row>=57:
+                print("Here")
+            columns_after_gps = curr_df.iloc[[row],1:]
+            test = columns_after_gps.isnull().all().all()
+            if test:
+                the_index = columns_after_gps.index
+                drop_indeces.append(the_index)
+                curr_df = curr_df.drop(the_index)
+        curr_df.to_csv("sample2.csv")
+        print("here")
+
 
         # This algorithm determines the number of headers to add to the header list and adds them to the data frame
         max_columns_therm = 0
