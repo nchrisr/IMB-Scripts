@@ -124,7 +124,7 @@ def second_imb_process(directory, year):
 
     elif year in DIRECTORY_TREES["02"]:
         for curr_file in files_to_process:
-            if curr_file.endswith(LOG_EXTENSION):
+            if curr_file.endswith(LOG_EXTENSION) and "IMB_02272011-3" in curr_file:
                 try:
                     return_data = second_process_for_second_folder(curr_file, directory)
                 except Exception as e:
@@ -405,15 +405,32 @@ def second_process_for_second_folder(current_file, directory):
                 curr_line = curr_line.replace(DASHES, '')
             if curr_line.strip():
                 # TODO: COntinue algorithm from here
+                # TODO: Fix issue with GPS string being longer than expected due to missing quotation marks.
                 line_list = re.split('(\d+-\d+-\d+ \d+:\d+:\d+")', curr_line)
                 #line_list = curr_line.split('"$GPGGA')
                 data = '"'
                 data_set_count = 0
                 for index in range(1, len(line_list)):
                     #if line_list[index].strip():
+                    """if bool(re.search("(\d+-\d+-\d+ \d+:\d+:\d+)", line_list[index])):
+                        if line_list[index][0] != '"':
+                            line_list[index] = '"' + (line_list[index]).strip()
+                            #data += '"' + (line_list[index]).strip()"""
+                    #else:
+                    if not(bool(re.search("(\d+-\d+-\d+ \d+:\d+:\d+)", line_list[index]))):
+                        valid_quotes = 0
+                        for character in line_list[index]:
+                            if character == '"':
+                                valid_quotes += 1
+                        if valid_quotes%2 != 0:
+                            if line_list[index][-1] == '"':
+                                line_list[index] = line_list[index][0:-1]
+                            else:
+                                line_list[index] = line_list[index]+'"'
                     if line_list[index][-1] == ',':
                         print("H")
-                        #line_list[index] = line_list[index].rstrip(',')
+                        line_list[index] = line_list[index].rstrip(',')
+
                     data += (line_list[index]).strip()
                     data_set_count += 1
                     if data_set_count >= 2:
