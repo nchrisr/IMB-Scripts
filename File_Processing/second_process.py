@@ -405,6 +405,7 @@ def second_process_for_second_folder(current_file, directory):
                 curr_line = curr_line.replace(DASHES, '')
             if curr_line.strip():
                 # TODO: COntinue algorithm from here
+                # TODO: Fix issue with GPS string being longer than expected due to missing quotation marks.
                 line_list = re.split('(\d+-\d+-\d+ \d+:\d+:\d+")', curr_line)
                 #line_list = curr_line.split('"$GPGGA')
                 data = '"'
