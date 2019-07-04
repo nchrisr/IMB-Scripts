@@ -6,6 +6,7 @@ import re
 import pandas as pd
 import traceback
 import csv
+import math
 
 # This dictionary is a representation of the directory structure which should be generated before running this script
 # on the specified working directory.
@@ -511,6 +512,7 @@ def second_process_for_second_folder(current_file, directory):
         for current_index in drop_indexes:
             full_dataframe = full_dataframe.drop(current_index)
 
+        # Break up the gps string into seperate columns and delete the original gps string column
         gps_fields_df = full_dataframe["GPS_STRING"].str.split(",", expand=True)
         gps_fields_df.columns = GPS_HEADERS[0:-3]
         full_dataframe.drop("GPS_STRING", axis=1, inplace=True)
@@ -519,11 +521,69 @@ def second_process_for_second_folder(current_file, directory):
             full_dataframe.insert(location, column, gps_fields_df[column])
             location += 1
 
+        max_size = row_size(full_dataframe)
+        # Remember python does not include the end index when it indexes.
+        # max_size+1 is not used here because the first column is an index column and will not be included in the indexing.
+        full_dataframe = full_dataframe.iloc[:,0:max_size]
+
         full_dataframe_string = full_dataframe.to_csv()
         output_data_string = top_metadata + full_dataframe_string
 
         name_to_use = str(pathlib2.Path(directory, imb_id + "-" + current_file.split('.')[0] + ".csv"))
         return {"filename": name_to_use, "data": output_data_string, "metadata_only": False}
+
+
+def row_size(dataframe):
+    """This function determines what is most likely the maximum number of columns that should be in 'dataframe'.
+       It checks to see how many columns each of the row has,
+       and determines the most frequently occurring number of columns
+       [It assumes that if most of the rows have a certain number of columns,
+        then that is probably the maximum number of columns that should be in the dataframe.]"""
+
+    row_lengths = []
+    # Go through each row in the dataframe and determine the number of columns in it
+    for index, row in dataframe.iterrows():
+        num_fields = 0
+        temp_num_fields = 0
+        last_loc_found = False
+        # Go through each field in the row
+        for value in row:
+            nan_found = False
+            try:
+                nan_found = math.isnan(value)
+            except Exception:
+                # Dummy code to pass try catch block
+                x=1
+
+            if nan_found:
+                last_loc_found = True
+            else:
+                if last_loc_found:
+                    last_loc_found = False
+            if last_loc_found:
+                temp_num_fields += 1
+            else:
+                if temp_num_fields > 0:
+                    num_fields += temp_num_fields
+                    temp_num_fields = 0
+                num_fields += 1
+        row_lengths.append(num_fields)
+
+    return most_frequent(row_lengths)
+
+
+def most_frequent(my_list):
+    """This function determines the which element in 'my_list' occurs most frequently."""
+    counter = 0
+    num = my_list[0]
+
+    for i in my_list:
+        curr_frequency = my_list.count(i)
+        if (curr_frequency > counter):
+            counter = curr_frequency
+            num = i
+
+    return num
 
 
 def do_process(working_directory=WORKING_DIRECTORY):
@@ -554,6 +614,11 @@ def do_process(working_directory=WORKING_DIRECTORY):
 
 # second_imb_process("C:\Users\CEOS\Desktop\Outputs\IMB_07112010", 2010)
 
-second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_02272011", 2011)
+second_imb_process("/Users/kikanye/PycharmProjects/IMB-Scripts/test_files/sample second folder process tests/IMB_02272011", 2011)
+second_imb_process("/Users/kikanye/PycharmProjects/IMB-Scripts/test_files/sample second folder process tests/IMB_02282011", 2011)
+second_imb_process("/Users/kikanye/PycharmProjects/IMB-Scripts/test_files/sample second folder process tests/IMB_03012011", 2011)
+second_imb_process("/Users/kikanye/PycharmProjects/IMB-Scripts/test_files/sample second folder process tests/IMB_03022011", 2011)
+second_imb_process("/Users/kikanye/PycharmProjects/IMB-Scripts/test_files/sample second folder process tests/IMB_03032011", 2011)
+second_imb_process("/Users/kikanye/PycharmProjects/IMB-Scripts/test_files/sample second folder process tests/IMB_03042011", 2011)
 
 print("End of processing.")
