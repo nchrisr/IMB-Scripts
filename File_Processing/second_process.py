@@ -31,7 +31,7 @@ THERM_HEADERS = ["Battery Voltage"]
 THERMISTOR_TEMPERATURE_HEADERS = "Thermistor Temperature-"
 
 # Headers for second data type
-SECOND_DATA_TYPE_INTERIM_HEADERS = ["DATETIME_UTC", "GPS_STRING"]+OUTPUT_ONE_HEADERS+THERM_HEADERS
+SECOND_DATA_TYPE_INTERIM_HEADERS = ["Device_Datetime_UTC", "GPS_STRING"]+OUTPUT_ONE_HEADERS+THERM_HEADERS
 SECOND_DATA_TYPE_HEADERS = []+GPS_HEADERS[0:-3]+OUTPUT_ONE_HEADERS+THERM_HEADERS
 
 
@@ -124,9 +124,24 @@ def second_imb_process(directory, year):
 
     elif year in DIRECTORY_TREES["02"]:
         for curr_file in files_to_process:
-            if curr_file.endswith(LOG_EXTENSION) and "IMB_02272011-3" in curr_file:
+            if curr_file.endswith(LOG_EXTENSION) and "-3" in curr_file:
                 try:
                     return_data = second_process_for_second_folder(curr_file, directory)
+                    # If None was returned, this means that the file was an empty file
+                    if return_data is not None:
+                        # If the file contains only metadata, state that in the .log file
+                        # Write the data into the appropriate .csv file.
+                        if return_data["metadata_only"]:
+                            print("{} contains only metadata\n".format(return_data["filename"]))
+                            errors_fp.write("{} contains only metadata \n\n".format(return_data["filename"]))
+                        else:
+                            print("\nSuccessfully processed file {}\n".format(curr_file))
+                        output_file_fp = open(return_data["filename"], "wb")
+                        output_file_fp.write(return_data["data"])
+                        output_file_fp.close()
+                    else:
+                        print("{} was an empty file...".format(curr_file))
+                        errors_fp.write("{} was an empty file...\n\n".format(curr_file))
                 except Exception as e:
                     print("Processing file {} failed.\n".format(curr_file))
                     print("\t"+str(e)+"\n")
@@ -401,43 +416,45 @@ def second_process_for_second_folder(current_file, directory):
         # Look for an indication that the end of the transmission has been reached.
         # Either a bunch of dashes or text saying the transmission is finished.
         while curr_line and (curr_line.replace(DASHES, '')) and (END_TRANSMIT not in curr_line):
+            # Clean out dashes that were transmitted on the same line as actual data
             if DASHES in curr_line:
                 curr_line = curr_line.replace(DASHES, '')
+            # If the line is not an empty line, then use regex to find the data
             if curr_line.strip():
-                # TODO: COntinue algorithm from here
-                # TODO: Fix issue with GPS string being longer than expected due to missing quotation marks.
+                # split the line of data into a list using dates as a delimeter
                 line_list = re.split('(\d+-\d+-\d+ \d+:\d+:\d+")', curr_line)
-                #line_list = curr_line.split('"$GPGGA')
                 data = '"'
                 data_set_count = 0
+                # If the data in a list is not a date value then parse it to handle bad quotation marks.
                 for index in range(1, len(line_list)):
-                    #if line_list[index].strip():
-                    """if bool(re.search("(\d+-\d+-\d+ \d+:\d+:\d+)", line_list[index])):
-                        if line_list[index][0] != '"':
-                            line_list[index] = '"' + (line_list[index]).strip()
-                            #data += '"' + (line_list[index]).strip()"""
-                    #else:
-                    if not(bool(re.search("(\d+-\d+-\d+ \d+:\d+:\d+)", line_list[index]))):
+                    if (not(bool(re.search("(\d+-\d+-\d+ \d+:\d+:\d+)", line_list[index])))):
+                        # Count the number of quotation marks in the string
+
                         valid_quotes = 0
                         for character in line_list[index]:
                             if character == '"':
                                 valid_quotes += 1
-                        if valid_quotes%2 != 0:
+                        # If it is not an even number that means one of the quotation marks was not closed.
+                        if valid_quotes % 2 != 0:
+                            # If the last character is a quotation mark remove it, if not add a quote at the end.
                             if line_list[index][-1] == '"':
                                 line_list[index] = line_list[index][0:-1]
                             else:
                                 line_list[index] = line_list[index]+'"'
+                    # Remove commas from the end of the string.
                     if line_list[index][-1] == ',':
-                        print("H")
                         line_list[index] = line_list[index].rstrip(',')
-
+                    # Add the processed strings to the data variable
+                    # After two strings from the list are processed that's considered one line of data.
                     data += (line_list[index]).strip()
                     data_set_count += 1
                     if data_set_count >= 2:
                         data_set_count = 0
                         data_table += data + "\n"  # Deals with excess new line characters.
                         data = '"'
+
             curr_line = file_pointer.readline()
+        # Was the transmission ended properly?
         if not ((DASHES in curr_line) or (END_TRANSMIT in curr_line)):
             transmission_completed = False
 
@@ -448,46 +465,51 @@ def second_process_for_second_folder(current_file, directory):
                        TRANSMISSION_FINISHED_SUCCESSFULLY + "," + str(transmission_completed) + "\n" + \
                        DATA_LINE + "," + str(data_line_after_connection) + "\n" + "\n"
 
+        # Get the maximum number of fields that are in any of the rows
         rows = csv.reader(StringIO.StringIO(data_table))
         rows = list(rows)
         max_length = max(len(row) for row in rows)
 
+        # Create the list of headers to be used for the file.
         headers_to_use = [] + SECOND_DATA_TYPE_INTERIM_HEADERS
         for i in range(1, (max_length - len(SECOND_DATA_TYPE_INTERIM_HEADERS)) + 1):
             headers_to_use.append(THERMISTOR_TEMPERATURE_HEADERS + str(i))
 
-        curr_df = pd.read_csv(StringIO.StringIO(data_table), header=None, names=headers_to_use, index_col=0)
-        curr_df.to_csv("sample.csv")
-        row_count = len(curr_df)
-        drop_indeces = []
-        for row in range(0, row_count-2):
-            if row>=57:
-                print("Here")
-            columns_after_gps = curr_df.iloc[[row],1:]
+        # Read the data into a dataframe from the parsed string.
+        full_dataframe = pd.read_csv(StringIO.StringIO(data_table), header=None, names=headers_to_use, index_col=0)
+        # TODO: Remove this
+        full_dataframe.to_csv("sample.csv")
+
+        # Remove all rows of data where the GPS string was not transmitted completely,
+        # This is done because it would cause bad data in the temperature fields.
+        row_count = len(full_dataframe)
+        drop_indexes = []
+        # for every row, check to see if the columns after the GPS string contain data
+        # If the row does not, add its index to the list of indexes to be dropped.
+        for row in range(0, row_count):
+            columns_after_gps = full_dataframe.iloc[[row],1:]
             test = columns_after_gps.isnull().all().all()
             if test:
                 the_index = columns_after_gps.index
-                drop_indeces.append(the_index)
-                curr_df = curr_df.drop(the_index)
-        curr_df.to_csv("sample2.csv")
-        print("here")
+                drop_indexes.append(the_index)
 
+        # Delete all rows that were missing data in the temperature columns.
+        for current_index in drop_indexes:
+            full_dataframe = full_dataframe.drop(current_index)
 
-        # This algorithm determines the number of headers to add to the header list and adds them to the data frame
-        max_columns_therm = 0
-        for i in range(0, len(curr_df)):
-            curr_num_columns = len(curr_df.iloc[i])
-            if curr_num_columns > max_columns_therm:
-                max_columns_therm = curr_num_columns
+        gps_fields_df = full_dataframe["GPS_STRING"].str.split(",", expand=True)
+        gps_fields_df.columns = GPS_HEADERS[0:-3]
+        full_dataframe.drop("GPS_STRING", axis=1, inplace=True)
+        location = 0
+        for column in gps_fields_df:
+            full_dataframe.insert(location, column, gps_fields_df[column])
+            location += 1
 
-        headers_to_use = [] + SECOND_DATA_TYPE_HEADERS
-        for i in range(1, (max_columns_therm - len(THERM_HEADERS)) + 1):
-            headers_to_use.append(THERMISTOR_TEMPERATURE_HEADERS + str(i))
-        curr_df.columns = headers_to_use
+        # TODO: Remove this
+        full_dataframe.to_csv("sample2.csv")
 
-        curr_df.index.names = ["Device_DateTime_UTC"]
-        curr_df_string = curr_df.to_csv()
-        output_data_string = top_metadata + curr_df_string
+        full_dataframe_string = full_dataframe.to_csv()
+        output_data_string = top_metadata + full_dataframe_string
 
         name_to_use = str(pathlib2.Path(directory, imb_id + "-" + current_file.split('.')[0] + ".csv"))
         return {"filename": name_to_use, "data": output_data_string, "metadata_only": False}
@@ -521,6 +543,6 @@ def do_process(working_directory=WORKING_DIRECTORY):
 
 # second_imb_process("C:\Users\CEOS\Desktop\Outputs\IMB_07112010", 2010)
 
-second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_02272011", 2011)
+second_imb_process("/Users/kikanye/PycharmProjects/IMB-Scripts/test_files/sample second folder process tests/IMB_02272011", 2011)
 
 print("End of processing.")
