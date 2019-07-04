@@ -59,6 +59,7 @@ LOG_EXTENSION = ".log"
 
 # Constants needed for successful parsing of data for second file format.
 IMB_data_table = "----------------IMB_data--------------------"
+GPGGA = '"$GPGGA,' # GPGGA field in gps string.
 
 # Constants needed for metadata.
 RINGS = "RINGS"
@@ -124,7 +125,7 @@ def second_imb_process(directory, year):
 
     elif year in DIRECTORY_TREES["02"]:
         for curr_file in files_to_process:
-            if curr_file.endswith(LOG_EXTENSION) and "-3" in curr_file:
+            if curr_file.endswith(LOG_EXTENSION):
                 try:
                     return_data = second_process_for_second_folder(curr_file, directory)
                     # If None was returned, this means that the file was an empty file
@@ -428,8 +429,23 @@ def second_process_for_second_folder(current_file, directory):
                 # If the data in a list is not a date value then parse it to handle bad quotation marks.
                 for index in range(1, len(line_list)):
                     if (not(bool(re.search("(\d+-\d+-\d+ \d+:\d+:\d+)", line_list[index])))):
-                        # Count the number of quotation marks in the string
 
+                        # Look for data lines* that have no dates but have GPS strings and remove them.
+                        if line_list[index].count(GPGGA) > 1:
+                            temp_split = re.split('("\$GPGGA,)', line_list[index])#line_list[index].split('$GPGGA')
+                            print(len(temp_split[4]))
+                            shortest_string=temp_split[2]
+                            for location in range(1, len(temp_split)):
+                                if not(temp_split[location] == GPGGA):
+                                    if len(temp_split[location])<len(shortest_string):
+                                        shortest_string = temp_split[location]
+                            line_list[index]=line_list[index].replace(GPGGA+shortest_string, '')
+
+                        # Remove commas from the end of the string.
+                        if line_list[index][-1] == ',':
+                            line_list[index] = line_list[index].rstrip(',')
+
+                        # Count the number of quotation marks in the string
                         valid_quotes = 0
                         for character in line_list[index]:
                             if character == '"':
@@ -477,8 +493,6 @@ def second_process_for_second_folder(current_file, directory):
 
         # Read the data into a dataframe from the parsed string.
         full_dataframe = pd.read_csv(StringIO.StringIO(data_table), header=None, names=headers_to_use, index_col=0)
-        # TODO: Remove this
-        full_dataframe.to_csv("sample.csv")
 
         # Remove all rows of data where the GPS string was not transmitted completely,
         # This is done because it would cause bad data in the temperature fields.
@@ -504,9 +518,6 @@ def second_process_for_second_folder(current_file, directory):
         for column in gps_fields_df:
             full_dataframe.insert(location, column, gps_fields_df[column])
             location += 1
-
-        # TODO: Remove this
-        full_dataframe.to_csv("sample2.csv")
 
         full_dataframe_string = full_dataframe.to_csv()
         output_data_string = top_metadata + full_dataframe_string
@@ -543,6 +554,6 @@ def do_process(working_directory=WORKING_DIRECTORY):
 
 # second_imb_process("C:\Users\CEOS\Desktop\Outputs\IMB_07112010", 2010)
 
-second_imb_process("/Users/kikanye/PycharmProjects/IMB-Scripts/test_files/sample second folder process tests/IMB_02272011", 2011)
+second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_02272011", 2011)
 
 print("End of processing.")
