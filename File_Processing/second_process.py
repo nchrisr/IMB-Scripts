@@ -467,7 +467,10 @@ def second_process_for_second_folder(current_file, directory):
                     data_set_count += 1
                     if data_set_count >= 2:
                         data_set_count = 0
-                        data_table += data + "\n"  # Deals with excess new line characters.
+                        # Deals with excess new line characters.
+                        data_table += data
+                        if data[-1] != '\n':
+                            data_table += '\n'
                         data = '"'
 
             curr_line = file_pointer.readline()
@@ -482,8 +485,10 @@ def second_process_for_second_folder(current_file, directory):
                        TRANSMISSION_FINISHED_SUCCESSFULLY + "," + str(transmission_completed) + "\n" + \
                        DATA_LINE + "," + str(data_line_after_connection) + "\n" + "\n"
 
+        # Make a list of all the data lines to handle newline characters in weird places.
+        data_table_list = data_table.splitlines()
+        rows = csv.reader(data_table_list)
         # Get the maximum number of fields that are in any of the rows
-        rows = csv.reader(StringIO.StringIO(data_table))
         rows = list(rows)
         max_length = max(len(row) for row in rows)
 
@@ -493,7 +498,8 @@ def second_process_for_second_folder(current_file, directory):
             headers_to_use.append(THERMISTOR_TEMPERATURE_HEADERS + str(i))
 
         # Read the data into a dataframe from the parsed string.
-        full_dataframe = pd.read_csv(StringIO.StringIO(data_table), header=None, names=headers_to_use, index_col=0)
+        full_dataframe = pd.DataFrame(rows, columns=headers_to_use)
+        full_dataframe = full_dataframe.set_index("Device_Datetime_UTC")
 
         # Remove all rows of data where the GPS string was not transmitted completely,
         # This is done because it would cause bad data in the temperature fields.
@@ -548,12 +554,17 @@ def row_size(dataframe):
         last_loc_found = False
         # Go through each field in the row
         for value in row:
+            # check for Nan or None values and note the fields
+            # If a Nan or None value is found and there is no other value after that,that means the row ended there.
             nan_found = False
-            try:
-                nan_found = math.isnan(value)
-            except Exception:
-                # Dummy code to pass try catch block
-                x=1
+            if value is None:
+                nan_found = True
+            else:
+                try:
+                    nan_found = math.isnan(value)
+                except Exception:
+                    # Dummy code to pass try catch block
+                    x=1
 
             if nan_found:
                 last_loc_found = True
@@ -579,10 +590,9 @@ def most_frequent(my_list):
 
     for i in my_list:
         curr_frequency = my_list.count(i)
-        if (curr_frequency > counter):
+        if curr_frequency > counter:
             counter = curr_frequency
             num = i
-
     return num
 
 
