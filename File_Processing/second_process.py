@@ -107,7 +107,7 @@ def second_imb_process(directory, year):
                         # Write the data into the appropriate .csv file.
                         if return_data["metadata_only"]:
                             print("{} contains only metadata\n".format(return_data["filename"]))
-                            errors_fp.write("{} contains only metadata \n\n".format(return_data["filename"]))
+                            errors_fp.write("{} contains_only_metadata \n\n".format(return_data["filename"]))
                         else:
                             print("\nSuccessfully processed file {}\n".format(curr_file))
                         output_file_fp = open(return_data["filename"], "wb")
@@ -115,13 +115,13 @@ def second_imb_process(directory, year):
                         output_file_fp.close()
                     else:
                         print("{} was an empty file...".format(curr_file))
-                        errors_fp.write("{} was an empty file...\n\n".format(curr_file))
+                        errors_fp.write("{} was an empty_file...\n\n".format(curr_file))
                 except Exception as e:
                     # Catch errors and write them to error file and print them to screen as well.
-                    print("Processing file {} failed.\n".format(curr_file))
+                    print("{} Processing file failed.\n".format(curr_file))
                     print("\t"+str(e)+"\n")
                     traceback.print_exc()
-                    errors_fp.write("Processing file {} failed.\n".format(curr_file))
+                    errors_fp.write("{} Processing_file_failed.\n".format(curr_file))
                     errors_fp.write("\t"+str(e)+"\n\n")
 
     elif year in DIRECTORY_TREES["02"]:
@@ -135,7 +135,7 @@ def second_imb_process(directory, year):
                         # Write the data into the appropriate .csv file.
                         if return_data["metadata_only"]:
                             print("{} contains only metadata\n".format(return_data["filename"]))
-                            errors_fp.write("{} contains only metadata \n\n".format(return_data["filename"]))
+                            errors_fp.write("{} contains_only_metadata \n\n".format(return_data["filename"]))
                         else:
                             print("\nSuccessfully processed file {}\n".format(curr_file))
                         output_file_fp = open(return_data["filename"], "wb")
@@ -143,12 +143,12 @@ def second_imb_process(directory, year):
                         output_file_fp.close()
                     else:
                         print("{} was an empty file...".format(curr_file))
-                        errors_fp.write("{} was an empty file...\n\n".format(curr_file))
+                        errors_fp.write("{} was an empty_file...\n\n".format(curr_file))
                 except Exception as e:
-                    print("Processing file {} failed.\n".format(curr_file))
+                    print("{} Processing file failed.\n".format(curr_file))
                     print("\t"+str(e)+"\n")
                     traceback.print_exc()
-                    errors_fp.write("Processing file {} failed.\n".format(curr_file))
+                    errors_fp.write("{} Processing_file_failed.\n".format(curr_file))
                     errors_fp.write("\t"+str(e)+"\n\n")
     errors_fp.close()
 
@@ -620,15 +620,15 @@ def do_process(working_directory=WORKING_DIRECTORY):
 # second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test-IMB_Data_Backup\Outputs\IMB_03272010", 2010)
 
 
-# do_process()
+do_process()
 
 # second_imb_process("C:\Users\CEOS\Desktop\Outputs\IMB_07112010", 2010)
 
-second_imb_process("/Users/kikanye/PycharmProjects/IMB-Scripts/test_files/sample second folder process tests/IMB_02272011", 2011)
-second_imb_process("/Users/kikanye/PycharmProjects/IMB-Scripts/test_files/sample second folder process tests/IMB_02282011", 2011)
-second_imb_process("/Users/kikanye/PycharmProjects/IMB-Scripts/test_files/sample second folder process tests/IMB_03012011", 2011)
-second_imb_process("/Users/kikanye/PycharmProjects/IMB-Scripts/test_files/sample second folder process tests/IMB_03022011", 2011)
-second_imb_process("/Users/kikanye/PycharmProjects/IMB-Scripts/test_files/sample second folder process tests/IMB_03032011", 2011)
-second_imb_process("/Users/kikanye/PycharmProjects/IMB-Scripts/test_files/sample second folder process tests/IMB_03042011", 2011)
+"""second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_02272011", 2011)
+second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_02282011", 2011)
+second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_03012011", 2011)
+second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_03022011", 2011)
+second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_03032011", 2011)
+second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_03042011", 2011)"""
 
 print("End of processing.")
