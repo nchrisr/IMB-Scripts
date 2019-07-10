@@ -8,7 +8,7 @@ import sys
 # Get the directory to organize from the command line.
 WORKING_DIRECTORY = None
 if len(sys.argv) < 2:
-    print("Incomplete Arguments... at lease one argument required")
+    print("Incomplete Arguments... at least one argument required")
     exit(-1)
 else:
     WORKING_DIRECTORY = sys.argv[1]
