@@ -10,7 +10,7 @@ import math
 
 # This dictionary is a representation of the directory structure which should be generated before running this script
 # on the specified working directory.
-DIRECTORY_TREES = {"01": [2009, 2010], "02": [2011, 2012, 2013], "03": [2014, 2015, 2016]}
+DIRECTORY_TREES = {"01": [2009, 2010], "02": [2010, 2011, 2012, 2013], "03": [2014, 2015, 2016]}
 
 # Headers for the GPS data
 GPS_HEADERS = ["$GPGGA", "GPS_Time_hhmmss", "Latitude_degrees_decimal_minutes_ddmm.mmmm", "N/S",
