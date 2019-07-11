@@ -100,7 +100,7 @@ def second_imb_process(directory, year):
     if year in DIRECTORY_TREES["01"]:
         # For every file in the directory, process only the .log files, by calling the appropriate function.
         for curr_file in files_to_process:
-            if curr_file.endswith(LOG_EXTENSION):
+            if curr_file.endswith(LOG_EXTENSION) and bool(''):
                 try:
                     return_data = second_process_for_first_file_type(curr_file, directory)
                     # If None was returned, this means that the file was an empty file
@@ -128,9 +128,36 @@ def second_imb_process(directory, year):
 
     elif year in DIRECTORY_TREES["02"]:
         for curr_file in files_to_process:
-            if curr_file.endswith(LOG_EXTENSION):
+            if curr_file.endswith(LOG_EXTENSION) and bool(''):
                 try:
                     return_data = second_process_for_second_folder(curr_file, directory)
+                    # If None was returned, this means that the file was an empty file
+                    if return_data is not None:
+                        # If the file contains only metadata, state that in the .log file
+                        # Write the data into the appropriate .csv file.
+                        if return_data["metadata_only"]:
+                            print("{} contains only metadata\n".format(return_data["filename"]))
+                            errors_fp.write("{} contains_only_metadata \n\n".format(return_data["filename"]))
+                        else:
+                            print("\nSuccessfully processed file {}\n".format(curr_file))
+                        output_file_fp = open(return_data["filename"], "wb")
+                        output_file_fp.write(return_data["data"])
+                        output_file_fp.close()
+                    else:
+                        print("{} was an empty file...".format(curr_file))
+                        errors_fp.write("{} was an empty_file...\n\n".format(curr_file))
+                except Exception as e:
+                    print("{} Processing file failed.\n".format(curr_file))
+                    print("\t"+str(e)+"\n")
+                    traceback.print_exc()
+                    errors_fp.write("{} Processing_file_failed.\n".format(curr_file))
+                    errors_fp.write("\t"+str(e)+"\n\n")
+
+    elif year in DIRECTORY_TREES["03"]:
+        for curr_file in files_to_process:
+            if curr_file.endswith(LOG_EXTENSION):
+                try:
+                    return_data = second_process_for_third_folder(curr_file, directory)
                     # If None was returned, this means that the file was an empty file
                     if return_data is not None:
                         # If the file contains only metadata, state that in the .log file
