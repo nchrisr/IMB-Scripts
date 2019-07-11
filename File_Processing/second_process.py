@@ -601,6 +601,208 @@ def second_process_for_second_folder(current_file, directory):
         return {"filename": name_to_use, "data": output_data_string, "metadata_only": False}
 
 
+def second_process_for_third_folder(current_file, directory):
+    """This function will handle the processing of log files regarded as '03' files).
+
+       -> 'current_file' is the name of the file being processed
+       -> 'directory' is the path to the directory which contains the file being processed.
+       -> It will return a dictionary with three key-value pairs.
+
+       "filename"-> the file path where the processed data should be saved to.
+       "data"-> A 'csv' string representation of the processed data.
+       "metadata_only"-> A boolean value indicating whether or not the file has actual data or just metadata."""
+    data_line_after_connection = None
+    ring_count = 0  # how many rings occurred before transmission of data.
+    connect_string = ""  # The string that indicated the establishment of a connection.
+    imb_id = ""  # The id of the Buoy.
+
+    # Strings to store the data from the different tables.
+    data_table = ""
+
+    # Did the transmission finish or was it broken abruptly.
+    transmission_completed = True
+
+    # Make the full path of the file to be processed and read it in as bytes.
+    file_path = str(pathlib2.Path(directory, current_file))
+    file_pointer = open(file_path, 'rb')
+
+    # Read in the file line by line.
+    curr_line = file_pointer.readline()
+
+    # date_regex matcher
+    date_regex = re.compile('(\d+-\d+-\d+ \d+:\d+:\d+")')
+
+    # Get the connection string and count the number of rings.
+    while curr_line and (CONNECT not in curr_line):
+        if (curr_line.strip()).lower() == RING.lower():
+            ring_count += 1
+        curr_line = file_pointer.readline()
+    connect_string = curr_line.strip()
+    curr_line = file_pointer.readline()
+
+    # Find the Buoy id.
+    while curr_line and (((DASHES in curr_line) or not(curr_line.strip())) or (BAD_GPS_DATA_LINE in curr_line.lower())
+                         or date_regex.search(curr_line)):
+
+        if (BAD_GPS_DATA_LINE in curr_line.lower()) or date_regex.search(curr_line):
+            data_line_after_connection = curr_line
+
+        curr_line = file_pointer.readline()
+
+    # If it gets here and there was no data found, there is probably no data in the file or it contains just 'rings'.
+    if not curr_line:
+        print("File with no data found ... ")
+        # If the file contained rings, store that. Rings are considered metadata.
+        # If there were no rings, then it was probably an empty file.
+        if ring_count > 0:
+            transmission_completed = False
+            connect_string = str(None)
+            imb_id = str(None)
+            top_metadata = RINGS + "," + str(ring_count) + "\n" + \
+                           CONNECTION_STRING + "," + connect_string + "\n" + \
+                           IMB_ID + "," + imb_id + "\n" + \
+                           TRANSMISSION_FINISHED_SUCCESSFULLY + "," + str(transmission_completed) + "\n" + \
+                           DATA_LINE + "," + str(data_line_after_connection) + "\n" + "\n"
+
+            name_to_use = str(pathlib2.Path(directory, imb_id + "-" + current_file.split('.')[0] + ".csv"))
+            return {"filename": name_to_use, "data": top_metadata, "metadata_only": True}
+        else:
+            return None
+    else:
+        # Store the Buoy id.
+        imb_id = curr_line.strip()
+
+        # Find the start of the IMB_data table and load all the data from it into a string,
+        # and remove excess newline characters.
+        while curr_line and (IMB_data_table not in curr_line):
+            curr_line = file_pointer.readline()
+        curr_line = file_pointer.readline()
+
+        # Look for an indication that the end of the transmission has been reached.
+        # Either a bunch of dashes or text saying the transmission is finished.
+        while curr_line and (curr_line.replace(DASHES, '')) and (END_TRANSMIT not in curr_line):
+            # Clean out dashes that were transmitted on the same line as actual data
+            if DASHES in curr_line:
+                curr_line = curr_line.replace(DASHES, '')
+            # If the line is not an empty line, then use regex to find the data
+            if curr_line.strip():
+                # split the line of data into a list using dates as a delimeter
+                line_list = re.split('(\d+-\d+-\d+ \d+:\d+:\d+")', curr_line)
+                data = '"'
+                data_set_count = 0
+                # If the data in a list is not a date value then parse it to handle bad quotation marks.
+                for index in range(1, len(line_list)):
+                    if (not(bool(re.search("(\d+-\d+-\d+ \d+:\d+:\d+)", line_list[index])))):
+
+                        # Look for data lines* that have no dates but have GPS strings and remove them.
+                        if line_list[index].count(GPGGA) > 1:
+                            temp_split = re.split('("\$GPGGA,)', line_list[index])#line_list[index].split('$GPGGA')
+                            print(len(temp_split[4]))
+                            shortest_string=temp_split[2]
+                            for location in range(1, len(temp_split)):
+                                if not(temp_split[location] == GPGGA):
+                                    if len(temp_split[location])<len(shortest_string):
+                                        shortest_string = temp_split[location]
+                            line_list[index]=line_list[index].replace(GPGGA+shortest_string, '')
+
+                        # Remove commas from the end of the string.
+                        if line_list[index][-1] == ',':
+                            line_list[index] = line_list[index].rstrip(',')
+
+                        # Count the number of quotation marks in the string
+                        valid_quotes = 0
+                        for character in line_list[index]:
+                            if character == '"':
+                                valid_quotes += 1
+                        # If it is not an even number that means one of the quotation marks was not closed.
+                        if valid_quotes % 2 != 0:
+                            # If the last character is a quotation mark remove it, if not add a quote at the end.
+                            if line_list[index][-1] == '"':
+                                line_list[index] = line_list[index][0:-1]
+                            else:
+                                line_list[index] = line_list[index]+'"'
+                    # Remove commas from the end of the string.
+                    if line_list[index][-1] == ',':
+                        line_list[index] = line_list[index].rstrip(',')
+                    # Add the processed strings to the data variable
+                    # After two strings from the list are processed that's considered one line of data.
+                    data += (line_list[index]).strip()
+                    data_set_count += 1
+                    if data_set_count >= 2:
+                        data_set_count = 0
+                        # Deals with excess new line characters.
+                        data_table += data
+                        if data[-1] != '\n':
+                            data_table += '\n'
+                        data = '"'
+
+            curr_line = file_pointer.readline()
+        # Was the transmission ended properly?
+        if not ((DASHES in curr_line) or (END_TRANSMIT in curr_line)):
+            transmission_completed = False
+
+        # Make the string for the metadata that will be at the top of the output file.
+        top_metadata = RINGS + "," + str(ring_count) + "\n" + \
+                       CONNECTION_STRING + "," + connect_string + "\n" + \
+                       IMB_ID + "," + imb_id + "\n" + \
+                       TRANSMISSION_FINISHED_SUCCESSFULLY + "," + str(transmission_completed) + "\n" + \
+                       DATA_LINE + "," + str(data_line_after_connection) + "\n" + "\n"
+
+        # Make a list of all the data lines to handle newline characters in weird places.
+        data_table_list = data_table.splitlines()
+        rows = csv.reader(data_table_list)
+        # Get the maximum number of fields that are in any of the rows
+        rows = list(rows)
+        max_length = max(len(row) for row in rows)
+
+        # Create the list of headers to be used for the file.
+        headers_to_use = [] + SECOND_DATA_TYPE_INTERIM_HEADERS
+        for i in range(1, (max_length - len(SECOND_DATA_TYPE_INTERIM_HEADERS)) + 1):
+            headers_to_use.append(THERMISTOR_TEMPERATURE_HEADERS + str(i))
+
+        # Read the data into a dataframe from the parsed string.
+        full_dataframe = pd.DataFrame(rows, columns=headers_to_use)
+        full_dataframe = full_dataframe.set_index("Device_Datetime_UTC")
+
+        # Remove all rows of data where the GPS string was not transmitted completely,
+        # This is done because it would cause bad data in the temperature fields.
+        row_count = len(full_dataframe)
+        drop_indexes = []
+        # for every row, check to see if the columns after the GPS string contain data
+        # If the row does not, add its index to the list of indexes to be dropped.
+        for row in range(0, row_count):
+            columns_after_gps = full_dataframe.iloc[[row],1:]
+            test = columns_after_gps.isnull().all().all()
+            if test:
+                the_index = columns_after_gps.index
+                drop_indexes.append(the_index)
+
+        # Delete all rows that were missing data in the temperature columns.
+        for current_index in drop_indexes:
+            full_dataframe = full_dataframe.drop(current_index)
+
+        # Break up the gps string into seperate columns and delete the original gps string column
+        gps_fields_df = full_dataframe["GPS_STRING"].str.split(",", expand=True)
+        gps_fields_df.columns = GPS_HEADERS[0:-3]
+        full_dataframe.drop("GPS_STRING", axis=1, inplace=True)
+        location = 0
+        for column in gps_fields_df:
+            full_dataframe.insert(location, column, gps_fields_df[column])
+            location += 1
+
+        max_size = row_size(full_dataframe)
+        # Remember python does not include the end index when it indexes.
+        # max_size+1 is not used here because the first column is an index column and will not be included in the indexing.
+        full_dataframe = full_dataframe.iloc[:,0:max_size]
+
+        full_dataframe_string = full_dataframe.to_csv()
+        output_data_string = top_metadata + full_dataframe_string
+
+        name_to_use = str(pathlib2.Path(directory, imb_id + "-" + current_file.split('.')[0] + ".csv"))
+        return {"filename": name_to_use, "data": output_data_string, "metadata_only": False}
+    return
+
+
 def row_size(dataframe):
     """This function determines what is most likely the maximum number of columns that should be in 'dataframe'.
        It checks to see how many columns each of the row has,
