@@ -4,6 +4,7 @@ import pathlib2
 import StringIO
 import re
 import pandas as pd
+import numpy as np
 import traceback
 import csv
 import math
@@ -57,6 +58,7 @@ GPS_TABLE = "------------- Parsed GPS Table -------------"
 OUTPUT_TABLE = "------------- Output1 Table ----------------"
 THERM_TABLE = "------------- Therm Table ------------------"
 LOG_EXTENSION = ".log"
+IMB_ID_PREFIX = "CEOS_IMBB"
 
 # Constants needed for successful parsing of data for second file format.
 IMB_data_table = "----------------IMB_data--------------------"
@@ -185,6 +187,10 @@ def second_process_for_first_file_type(current_file, directory):
     # Read in the file line by line.
     curr_line = file_pointer.readline()
 
+    # date_regex matcher
+    date_regex = re.compile('(\d+-\d+-\d+ \d+:\d+:\d+")')
+
+
     # Get the connection string and count the number of rings.
     while curr_line and (CONNECT not in curr_line):
         if (curr_line.strip()).lower() == RING.lower():
@@ -194,9 +200,12 @@ def second_process_for_first_file_type(current_file, directory):
     curr_line = file_pointer.readline()
 
     # Find the Buoy id.
-    while curr_line and (((DASHES in curr_line) or not(curr_line.strip())) or (BAD_GPS_DATA_LINE in curr_line.lower())):
-        if BAD_GPS_DATA_LINE in curr_line.lower():
+    while curr_line and (((DASHES in curr_line) or not(curr_line.strip())) or (BAD_GPS_DATA_LINE in curr_line.lower())
+                         or date_regex.search(curr_line)):
+
+        if (BAD_GPS_DATA_LINE in curr_line.lower()) or date_regex.search(curr_line):
             data_line_after_connection = curr_line
+
         curr_line = file_pointer.readline()
 
     # If it gets here and there was no data found, there is probably no data in the file or it contains just 'rings'.
@@ -219,8 +228,10 @@ def second_process_for_first_file_type(current_file, directory):
         else:
             return None
     else:
-        # Store the Buoy id.
+        # Store the Buoy id only if it is a valid ID, this is checked using the prefix constant.
         imb_id = curr_line.strip()
+        if IMB_ID_PREFIX.lower() not in imb_id:
+            imb_id = ''
 
         # Find the start of the GPS table and load all the data from it into a string,
         # and remove excess newline characters.
@@ -250,6 +261,21 @@ def second_process_for_first_file_type(current_file, directory):
         if not ((DASHES in curr_line) or (END_TRANSMIT in curr_line)):
             transmission_completed = False
 
+        if not(gps_data_table or output_one_data_table or therm_data_table):
+            transmission_completed = False
+            if not(connect_string):
+                connect_string = str(None)
+            if not(imb_id):
+                imb_id = str(None)
+            top_metadata = RINGS + "," + str(ring_count) + "\n" + \
+                           CONNECTION_STRING + "," + connect_string + "\n" + \
+                           IMB_ID + "," + imb_id + "\n" + \
+                           TRANSMISSION_FINISHED_SUCCESSFULLY + "," + str(transmission_completed) + "\n" + \
+                           DATA_LINE + "," + str(data_line_after_connection) + "\n" + "\n"
+
+            name_to_use = str(pathlib2.Path(directory, imb_id + "-" + current_file.split('.')[0] + ".csv"))
+            return {"filename": name_to_use, "data": top_metadata, "metadata_only": True}
+
         # Make the string for the metadata that will be at the top of the output file.
         top_metadata = RINGS + "," + str(ring_count) + "\n" + \
                        CONNECTION_STRING + "," + connect_string + "\n" + \
@@ -258,32 +284,67 @@ def second_process_for_first_file_type(current_file, directory):
                        DATA_LINE + "," + str(data_line_after_connection) + "\n" + "\n"
 
         # Check if the gps data contains invalid characters.
-        try:
-            temp = gps_data_table.decode('ascii')
-        except Exception as e:
-            raise Exception("NON ascii characters detected in the file being processed.\n\t"+str(e))
 
-        # Read the csv string for the gps data into a dataframe.
-        gps_df = pd.read_csv(StringIO.StringIO(gps_data_table), header=None, index_col=0)
+        # Parse the gps data string using the into a list of rows and deal with rows that have no checksum values.
+        gps_data_list = gps_data_table.splitlines()
+        rows = csv.reader(gps_data_list)
+        rows = list(rows)
+        for curr_row in rows:
+            has_checksum = False
+            for i in range(0, len(curr_row)):
+                if '*' in curr_row[i]:
+                    has_checksum = True
+                    break
+            if not(has_checksum):
+                curr_row.append("*")
 
-        # Check if the output-1 data contains invalid characters
-        try:
-            temp = output_one_data_table.decode('ascii')
-        except Exception as e:
-            raise Exception("NON ascii characters detected in the file being processed.\n\t"+str(e))
+        # Read the gps data into a dataframe, set the index to the datetime column,
+        # remove None values and make them nan.
+        gps_df = pd.DataFrame(rows)
+        gps_df = gps_df.set_index(0)
+        gps_df.replace('None', np.nan, inplace=True)
+        gps_df.replace(to_replace=[None], value=np.nan, inplace=True)
 
-        # Read in output1 data into data frame from a string, index with the datetime column and assign headers.
-        output_one_df = pd.read_csv(StringIO.StringIO(output_one_data_table), header=None, index_col=0)
+        # If there is data in the second table,
+        # Parse the data string into a list of rows,
+        if output_one_data_table:
+            output_one_list = output_one_data_table.splitlines()
+            rows = csv.reader((output_one_list))
+            rows = list(rows)
+
+            # Read in output1 data into data frame from a string, set the index to the datetime,
+            # Remove nan values
+            output_one_df = pd.DataFrame(rows)
+            output_one_df = output_one_df.set_index(0)
+            output_one_df.replace('None', np.nan, inplace=True)
+            output_one_df.replace(to_replace=[None], value=np.nan, inplace=True)
+
+        else:
+            # If there is no data in the string make an empty data table.
+            output_one_df = pd.DataFrame(columns=OUTPUT_ONE_HEADERS, index=gps_df.index)
+        # Assign its column headers
         output_one_df.columns = OUTPUT_ONE_HEADERS
 
-        # Check if the temperature data contains invalid characters
-        try:
-            temp = therm_data_table.decode('ascii')
-        except Exception as e:
-            raise Exception("NON ascii characters detected in the file being processed.\n\t"+str(e))
+        # If there is data in the temperature table,
+        # Parse the data string into a list of rows,
+        if therm_data_table:
+            therm_data_list = therm_data_table.splitlines()
+            rows = csv.reader(therm_data_list)
+            rows = list(rows)
 
-        # Read the therm table data and index with the datetime column as well.
-        therm_df = pd.read_csv(StringIO.StringIO(therm_data_table), header=None, index_col=0)
+            # Read the temperature data into a data frame from a string and set the index to the datetime,
+            # Remove nan values
+            therm_df = pd.DataFrame(rows)
+            therm_df = therm_df.set_index(0)
+            therm_df.replace('None', np.nan, inplace=True)
+            therm_df.replace(to_replace=[None], value=np.nan, inplace=True)
+
+        else:
+            # If there is no data in the string make an empty data table.
+            cols_headers=[]
+            for i in range(1, 46):
+                cols_headers.append(THERMISTOR_TEMPERATURE_HEADERS + str(i))
+            therm_df = pd.DataFrame(columns =cols_headers, index=gps_df.index)
 
         # All the data should have the same number of rows if not there is an issue.
         if not((len(gps_df) == len(therm_df)) and (len(therm_df) == len(output_one_df))):
@@ -292,15 +353,16 @@ def second_process_for_first_file_type(current_file, directory):
 
         # This algorithm determines the number of headers to add to the header list for therm data and
         # adds them to the data frame
-        max_columns_therm = 0
-        for i in range(0, len(therm_df)):
-            curr_num_columns = len(therm_df.iloc[i])
-            if curr_num_columns > max_columns_therm:
-                max_columns_therm = curr_num_columns
-        headers_to_use = [] + THERM_HEADERS
-        for i in range(1, (max_columns_therm - len(THERM_HEADERS)) + 1):
-            headers_to_use.append(THERMISTOR_TEMPERATURE_HEADERS + str(i))
-        therm_df.columns = headers_to_use
+        if therm_data_table:
+            max_columns_therm = 0
+            for i in range(0, len(therm_df)):
+                curr_num_columns = len(therm_df.iloc[i])
+                if curr_num_columns > max_columns_therm:
+                    max_columns_therm = curr_num_columns
+            headers_to_use = [] + THERM_HEADERS
+            for i in range(1, (max_columns_therm - len(THERM_HEADERS)) + 1):
+                headers_to_use.append(THERMISTOR_TEMPERATURE_HEADERS + str(i))
+            therm_df.columns = headers_to_use
 
         # Process the gps data so that the data moves into the right columns.
         # Use the datetime column as the index. Assign the appropriate headers as well using the variables at the top.
