@@ -41,6 +41,8 @@ THERMISTOR_TEMPERATURE_HEADERS = "Thermistor Temperature-"
 SECOND_DATA_TYPE_INTERIM_HEADERS = ["Device_Datetime_UTC", "GPS_STRING"]+OUTPUT_ONE_HEADERS_NO_DAY_OF_YEAR+THERM_HEADERS
 SECOND_DATA_TYPE_HEADERS = []+GPS_HEADERS[0:-3]+OUTPUT_ONE_HEADERS_NO_DAY_OF_YEAR+THERM_HEADERS
 
+# Prefixes to check for in the IMB Id's for validity
+IMB_ID_prefixes = ["CEOS_IMBB", "BREA_IMB", "Daneborg_IMB", "StnNord_IMB"]
 
 WORKING_DIRECTORY = None
 if len(sys.argv) < 2:
@@ -63,7 +65,6 @@ GPS_TABLE = "------------- Parsed GPS Table -------------"
 OUTPUT_TABLE = "------------- Output1 Table ----------------"
 THERM_TABLE = "------------- Therm Table ------------------"
 LOG_EXTENSION = ".log"
-IMB_ID_PREFIX = "CEOS_IMBB"
 
 # Constants needed for successful parsing of data for second file format.
 IMB_data_table = "----------------IMB_data--------------------"
@@ -80,7 +81,7 @@ DATA_LINE = "DATA LINE AFTER CONNECTION STRING"
 ERRORS_FILE = "second_process_errors.txt"
 
 
-def second_imb_process(directory, year):
+def second_imb_process(directory, type):
     """
      This function will execute the second process in handling the IMB log files.
      It will process the files which by calling different functions based on what year the files are from.
@@ -100,71 +101,28 @@ def second_imb_process(directory, year):
     files_to_process = os.listdir(directory)
     print("\n{} file(s) will be processed.\n".format(len(files_to_process)))
 
-    # Decide how to process the files based on what directory they are in and what year they are from.
-    # The files need to be organized by year prior for this to work.
-    if year in DIRECTORY_TREES["01"]:
-        # For every file in the directory, process only the .log files, by calling the appropriate function.
-        for curr_file in files_to_process:
-            if curr_file.endswith(LOG_EXTENSION):#and bool(''):
-                try:
+    # Decide how to process the files based on what directory they are in and what type they are .
+    # The files need to be organized by type prior for this to work.
+    # For every file in the directory, process only the .log files, by calling the appropriate function.
+    for curr_file in files_to_process:
+        if curr_file.endswith(LOG_EXTENSION):
+            try:
+                # Process the file based on the file type
+                if type == "01":
                     return_data = second_process_for_first_file_type(curr_file, directory)
-                    # If None was returned, this means that the file was an empty file
-                    if return_data is not None:
-                        # If the file contains only metadata, state that in the .log file
-                        # Write the data into the appropriate .csv file.
-                        if return_data["metadata_only"]:
-                            print("{} contains only metadata\n".format(return_data["filename"]))
-                            errors_fp.write("{} contains_only_metadata \n\n".format(return_data["filename"]))
-                        else:
-                            print("\nSuccessfully processed file {}\n".format(curr_file))
-                        output_file_fp = open(return_data["filename"], "wb")
-                        output_file_fp.write(return_data["data"])
-                        output_file_fp.close()
-                    else:
-                        print("{} was an empty file...".format(curr_file))
-                        errors_fp.write("{} was an empty_file...\n\n".format(curr_file))
-                except Exception as e:
-                    # Catch errors and write them to error file and print them to screen as well.
-                    print("{} Processing file failed.\n".format(curr_file))
-                    print("\t"+str(e)+"\n")
-                    traceback.print_exc()
-                    errors_fp.write("{} Processing_file_failed.\n".format(curr_file))
-                    errors_fp.write("\t"+str(e)+"\n\n")
-
-    elif year in DIRECTORY_TREES["02"]:
-        for curr_file in files_to_process:
-            if curr_file.endswith(LOG_EXTENSION) and bool(''):
-                try:
+                elif type == "02":
                     return_data = second_process_for_second_folder(curr_file, directory)
-                    # If None was returned, this means that the file was an empty file
-                    if return_data is not None:
-                        # If the file contains only metadata, state that in the .log file
-                        # Write the data into the appropriate .csv file.
-                        if return_data["metadata_only"]:
-                            print("{} contains only metadata\n".format(return_data["filename"]))
-                            errors_fp.write("{} contains_only_metadata \n\n".format(return_data["filename"]))
-                        else:
-                            print("\nSuccessfully processed file {}\n".format(curr_file))
-                        output_file_fp = open(return_data["filename"], "wb")
-                        output_file_fp.write(return_data["data"])
-                        output_file_fp.close()
-                    else:
-                        print("{} was an empty file...".format(curr_file))
-                        errors_fp.write("{} was an empty_file...\n\n".format(curr_file))
-                except Exception as e:
-                    print("{} Processing file failed.\n".format(curr_file))
-                    print("\t"+str(e)+"\n")
-                    traceback.print_exc()
-                    errors_fp.write("{} Processing_file_failed.\n".format(curr_file))
-                    errors_fp.write("\t"+str(e)+"\n\n")
-
-    elif year in DIRECTORY_TREES["03"]:
-        for curr_file in files_to_process:
-            if curr_file.endswith(LOG_EXTENSION) and bool(''):
-                try:
+                elif type == "03":
                     return_data = second_process_for_third_folder(curr_file, directory)
-                    # If None was returned, this means that the file was an empty file
-                    if return_data is not None:
+                else:
+                    # If the file type is not known, then make return_data an empty dictionary.
+                    return_data = {}
+                # If None was returned, this means that the file was an empty file
+                if return_data is not None:
+                    # If it is not none but it is an empty dictionary then the key was unknown
+                    if len(return_data) == 0:
+                        print("Unknown key for file type encountered")
+                    else:
                         # If the file contains only metadata, state that in the .log file
                         # Write the data into the appropriate .csv file.
                         if return_data["metadata_only"]:
@@ -175,15 +133,16 @@ def second_imb_process(directory, year):
                         output_file_fp = open(return_data["filename"], "wb")
                         output_file_fp.write(return_data["data"])
                         output_file_fp.close()
-                    else:
-                        print("{} was an empty file...".format(curr_file))
-                        errors_fp.write("{} was an empty_file...\n\n".format(curr_file))
-                except Exception as e:
-                    print("{} Processing file failed.\n".format(curr_file))
-                    print("\t"+str(e)+"\n")
-                    traceback.print_exc()
-                    errors_fp.write("{} Processing_file_failed.\n".format(curr_file))
-                    errors_fp.write("\t"+str(e)+"\n\n")
+                else:
+                    print("{} was an empty file...".format(curr_file))
+                    errors_fp.write("{} was an empty_file...\n\n".format(curr_file))
+            except Exception as e:
+                # Catch errors and write them to error file and print them to screen as well.
+                print("{} Processing file failed.\n".format(curr_file))
+                print("\t"+str(e)+"\n")
+                traceback.print_exc()
+                errors_fp.write("{} Processing_file_failed.\n".format(curr_file))
+                errors_fp.write("\t"+str(e)+"\n\n")
     errors_fp.close()
 
     return
@@ -262,8 +221,14 @@ def second_process_for_first_file_type(current_file, directory):
     else:
         # Store the Buoy id only if it is a valid ID, this is checked using the prefix constant.
         imb_id = curr_line.strip()
-        if IMB_ID_PREFIX.lower() not in imb_id.lower():
-            imb_id = ''
+        valid_id = False
+        for id_prefix in IMB_ID_prefixes:
+            if id_prefix.lower() in imb_id.lower():
+                valid_id = True
+                break
+
+        if not(valid_id):
+            imb_id = str(None)
 
         # Find the start of the GPS table and load all the data from it into a string,
         # and remove excess newline characters.
@@ -504,6 +469,14 @@ def second_process_for_second_folder(current_file, directory):
     else:
         # Store the Buoy id.
         imb_id = curr_line.strip()
+        valid_id = False
+        for id_prefix in IMB_ID_prefixes:
+            if id_prefix.lower() in imb_id.lower():
+                valid_id = True
+                break
+
+        if not (valid_id):
+            imb_id = str(None)
 
         # Find the start of the IMB_data table and load all the data from it into a string,
         # and remove excess newline characters.
@@ -705,8 +678,16 @@ def second_process_for_third_folder(current_file, directory):
     else:
         # Store the Buoy id.
         imb_id = curr_line.strip()
-        curr_line = file_pointer.readline()
+        valid_id = False
+        for id_prefix in IMB_ID_prefixes:
+            if id_prefix.lower() in imb_id.lower():
+                valid_id = True
+                break
 
+        if not (valid_id):
+            imb_id = str(None)
+
+        curr_line = file_pointer.readline()
 
         # Find the start of the IMB_data table and load all the data from it into a string,
         # and remove excess newline characters.
@@ -910,7 +891,7 @@ def do_process(working_directory=WORKING_DIRECTORY):
             for directory in list_of_directories:
                 full_dir_path = str(pathlib2.Path(current_directory, directory))
                 if (pathlib2.Path(full_dir_path)).is_dir():
-                    second_imb_process(full_dir_path, year)
+                    second_imb_process(full_dir_path, key)
                 else:
                     print("Invalid directory path {}".format(full_dir_path))
 
@@ -920,10 +901,10 @@ def do_process(working_directory=WORKING_DIRECTORY):
 # second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test-IMB_Data_Backup\Outputs\IMB_03272010", 2010)
 
 
-#do_process()
+do_process()
 
 # second_imb_process("C:\Users\CEOS\Desktop\Outputs\IMB_07112010", 2010)
-second_imb_process("/Users/kikanye/PycharmProjects/IMB-Scripts/hand_tests", 2009)
+#second_imb_process("/Users/kikanye/PycharmProjects/IMB-Scripts/hand_tests", 2009)
 """second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_02272011", 2011)
 second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_02282011", 2011)
 second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_03012011", 2011)
