@@ -18,7 +18,7 @@ GPS_HEADERS = ["$GPGGA", "GPS_Time_hhmmss", "Latitude_degrees_decimal_minutes_dd
                "Longitude_degrees_decimal_minutes_ddmm.mmmm", "W/E", "Quality Indicator", "Number of Satellites Used",
                "HDOP(horizontal dilution of precision)", "Antenna altitude", "altitude units (M(metres)/ F(feet))",
                "Geoidal Separation", "Geoidal Separation Units (M(metres)/ F(feet))", "Correction age",
-               "Checksum", "Unknown", "Unknown", "Unknown"]
+               "Checksum", "Unknown-1", "Unknown-2", "Unknown-3"]
 
 # Headers for Output1 data
 OUTPUT_ONE_HEADERS = ["Year", "Month", "Day", "Day of year", "Hour", "Minute", "Seconds",
@@ -26,7 +26,7 @@ OUTPUT_ONE_HEADERS = ["Year", "Month", "Day", "Day of year", "Hour", "Minute", "
                       "Raw under water sounder distance", "UW sounder distance", "Raw snow sounder distance",
                       "Snow sounder quality", "Corrected Snow sounder distance"]
 
-OUTPUT_ONE_HEADERS_NO_DAY_OF_YEAR = ["Year", "Month", "Day", "Hour", "Minute", "Seconds",
+OUTPUT_ONE_HEADERS_NO_DAY_OF_YEAR = ["Year", "Month", "Day", "Day of Year", "Hour", "Minute", "Seconds",
                       "Date Logger temperature", "Battery voltage", "Air temperature", "Sea Level Pressure",
                       "Raw under water sounder distance", "UW sounder distance", "Raw snow sounder distance",
                       "Snow sounder quality", "Corrected Snow sounder distance"]
@@ -80,6 +80,8 @@ DATA_LINE = "DATA LINE AFTER CONNECTION STRING"
 # Name of the file containing error logs.
 ERRORS_FILE = "second_process_errors.txt"
 
+# List of symbols to remove
+BAD_SYMBOLS = ["-", "'", '"']
 
 def second_imb_process(directory, type):
     """
@@ -397,6 +399,101 @@ def second_process_for_first_file_type(current_file, directory):
         # Add the column header for the Datetime, make a csv string, and add the metadata to the top of the string.
         # Return this csv string, also return the name to be used for the generated file.
         final_merge_df.index.names = ['Device_DateTime_UTC']
+        final_merge_df = final_merge_df.drop(["Unknown-1", "Unknown-2", "Unknown-3"], axis=1)
+        list_of_rows = final_merge_df.to_dict("records")
+
+        """
+        for current_dictionary in list_of_rows:
+            for key in current_dictionary:
+                if current_dictionary[key] in BAD_SYMBOLS:
+                    current_dictionary[key] = None
+                if key == "$GPGGA":
+                    try:
+                        if current_dictionary[key]!="$GPGGA":
+                            current_dictionary["$GPGGA"] = None
+                    except Exception as e:
+                        current_dictionary[key] = None
+                elif key == "GPS_Time_hhmmss":
+                    try:
+                        current_dictionary[key] = int(current_dictionary[key])
+                        if len(((str(current_dictionary[key])).split('.'))[0]) != 5:
+                            current_dictionary[key] = None
+                    except Exception as e:
+                        current_dictionary[key] = None
+                elif key == "Latitude_degrees_decimal_minutes_ddmm.mmmm":
+                    try:
+                        if not(isinstance(current_dictionary[key], float)):
+                            float(current_dictionary[key])
+                    except Exception as e:
+                        current_dictionary[key] = None
+                elif key == "N/S":
+                    try:
+                        if current_dictionary[key].lower()!="n" and current_dictionary[key].lower()!="s":
+                            current_dictionary["key"] = None
+                    except Exception as e:
+                        current_dictionary[key] = None
+                elif key == "Longitude_degrees_decimal_minutes_ddmm.mmmm":
+                    try:
+                        if not(isinstance(current_dictionary[key], float)):
+                            float(current_dictionary[key])
+                    except Exception as e:
+                        current_dictionary[key] = None
+                elif key == "W/E":
+                    try:
+                        if current_dictionary[key].lower()!="w" and current_dictionary[key].lower()!="e":
+                            current_dictionary["key"] = None
+                    except Exception as e:
+                        current_dictionary[key] = None
+                elif key == "Quality Indicator":
+                    try:
+                        if not(isinstance(current_dictionary[key], int)):
+                            current_dictionary[key] = int(current_dictionary)
+                    except Exception as e:
+                        current_dictionary[key] = None
+                elif key == "Number of Satellites Used":
+                    try:
+                        if not(isinstance(current_dictionary[key], int)):
+                            current_dictionary[key] = int(current_dictionary)
+                    except Exception as e:
+                        current_dictionary[key] = None
+                elif key == "HDOP(horizontal dilution of precision)":
+                    try:
+                        if not(isinstance(current_dictionary[key], float)):
+                            float(current_dictionary[key])
+                    except Exception as e:
+                        current_dictionary[key] = None
+                elif key == "Antenna altitude":
+                    try:
+                        if not(isinstance(current_dictionary[key], float)):
+                            float(current_dictionary[key])
+                    except Exception as e:
+                        current_dictionary[key] = None
+                elif key == "altitude units (M(metres)/F(feet))":
+                    try:
+                        if current_dictionary[key].lower() != "m" and current_dictionary[key].lower() != "f":
+                            current_dictionary["key"] = None
+                    except Exception as e:
+                        current_dictionary[key] = None
+                elif key == "Geoidal Separation":
+                    try:
+                        if not(isinstance(current_dictionary[key], float)):
+                            float(current_dictionary[key])
+                    except Exception as e:
+                        current_dictionary[key] = None
+                elif key == "Geoidal Separation Units (M(metres)/F(feet))":
+                    try:
+                        if current_dictionary[key].lower() != "m" and current_dictionary[key].lower() != "f":
+                            current_dictionary["key"] = None
+                    except Exception as e:
+                        current_dictionary[key] = None
+                elif key == "Checksum":
+                    if not (bool(re.search("(\*\d\d|[a-zA-Z])"), current_dictionary[key])):
+                        current_dictionary[key] = None
+                elif THERMISTOR_TEMPERATURE_HEADERS in key:
+                    try:
+                        float(current_dictionary[key])
+                    except Exception as e:
+                        current_dictionary[key] = None """
         output_data_string = final_merge_df.to_csv()
         output_data_string = top_metadata + output_data_string
 
@@ -600,6 +697,8 @@ def second_process_for_second_folder(current_file, directory):
         # Remember python does not include the end index when it indexes.
         # max_size+1 is not used here because the first column is an index column and will not be included in the indexing.
         full_dataframe = full_dataframe.iloc[:,0:max_size]
+
+        list_of_rows = full_dataframe.to_dict("records")
 
         full_dataframe_string = full_dataframe.to_csv()
         output_data_string = top_metadata + full_dataframe_string
@@ -812,12 +911,13 @@ def second_process_for_third_folder(current_file, directory):
         # max_size+1 is not used here because the first column is an index column and will not be included in the indexing.
         full_dataframe = full_dataframe.iloc[:,0:max_size]
 
+        list_of_rows = full_dataframe.to_dict("records")
+
         full_dataframe_string = full_dataframe.to_csv()
         output_data_string = top_metadata + full_dataframe_string
 
         name_to_use = str(pathlib2.Path(directory, imb_id + "-" + current_file.split('.')[0] + ".csv"))
         return {"filename": name_to_use, "data": output_data_string, "metadata_only": False}
-    return
 
 
 def row_size(dataframe):
@@ -901,10 +1001,12 @@ def do_process(working_directory=WORKING_DIRECTORY):
 # second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test-IMB_Data_Backup\Outputs\IMB_03272010", 2010)
 
 
-do_process()
+#do_process()
 
-# second_imb_process("C:\Users\CEOS\Desktop\Outputs\IMB_07112010", 2010)
-#second_imb_process("/Users/kikanye/PycharmProjects/IMB-Scripts/hand_tests", 2009)
+second_imb_process("C:\Users\CEOS\Desktop\T1\IMB_LogFile_Archive\\01\\2009\Outputs\IMB_09242009", "01")
+second_imb_process("C:\Users\CEOS\Desktop\T1\IMB_LogFile_Archive\\02\\2011\Outputs\IMB_01312011", "02")
+second_imb_process("C:\Users\CEOS\Desktop\T1\IMB_LogFile_Archive\\03\\2014\Outputs\IMB_01182014", "03")
+
 """second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_02272011", 2011)
 second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_02282011", 2011)
 second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_03012011", 2011)
