@@ -26,6 +26,11 @@ OUTPUT_ONE_HEADERS = ["Year", "Month", "Day", "Day of year", "Hour", "Minute", "
                       "Raw under water sounder distance", "UW sounder distance", "Raw snow sounder distance",
                       "Snow sounder quality", "Corrected Snow sounder distance"]
 
+OUTPUT_ONE_HEADERS_NO_DAY_OF_YEAR = ["Year", "Month", "Day", "Hour", "Minute", "Seconds",
+                      "Date Logger temperature", "Battery voltage", "Air temperature", "Sea Level Pressure",
+                      "Raw under water sounder distance", "UW sounder distance", "Raw snow sounder distance",
+                      "Snow sounder quality", "Corrected Snow sounder distance"]
+
 # Headers for Therm data
 THERM_HEADERS = ["Battery Voltage"]
 
@@ -33,8 +38,8 @@ THERM_HEADERS = ["Battery Voltage"]
 THERMISTOR_TEMPERATURE_HEADERS = "Thermistor Temperature-"
 
 # Headers for second data type
-SECOND_DATA_TYPE_INTERIM_HEADERS = ["Device_Datetime_UTC", "GPS_STRING"]+OUTPUT_ONE_HEADERS+THERM_HEADERS
-SECOND_DATA_TYPE_HEADERS = []+GPS_HEADERS[0:-3]+OUTPUT_ONE_HEADERS+THERM_HEADERS
+SECOND_DATA_TYPE_INTERIM_HEADERS = ["Device_Datetime_UTC", "GPS_STRING"]+OUTPUT_ONE_HEADERS_NO_DAY_OF_YEAR+THERM_HEADERS
+SECOND_DATA_TYPE_HEADERS = []+GPS_HEADERS[0:-3]+OUTPUT_ONE_HEADERS_NO_DAY_OF_YEAR+THERM_HEADERS
 
 
 WORKING_DIRECTORY = None
@@ -100,7 +105,7 @@ def second_imb_process(directory, year):
     if year in DIRECTORY_TREES["01"]:
         # For every file in the directory, process only the .log files, by calling the appropriate function.
         for curr_file in files_to_process:
-            if curr_file.endswith(LOG_EXTENSION) and bool(''):
+            if curr_file.endswith(LOG_EXTENSION):#and bool(''):
                 try:
                     return_data = second_process_for_first_file_type(curr_file, directory)
                     # If None was returned, this means that the file was an empty file
@@ -155,7 +160,7 @@ def second_imb_process(directory, year):
 
     elif year in DIRECTORY_TREES["03"]:
         for curr_file in files_to_process:
-            if curr_file.endswith(LOG_EXTENSION):
+            if curr_file.endswith(LOG_EXTENSION) and bool(''):
                 try:
                     return_data = second_process_for_third_folder(curr_file, directory)
                     # If None was returned, this means that the file was an empty file
@@ -257,7 +262,7 @@ def second_process_for_first_file_type(current_file, directory):
     else:
         # Store the Buoy id only if it is a valid ID, this is checked using the prefix constant.
         imb_id = curr_line.strip()
-        if IMB_ID_PREFIX.lower() not in imb_id:
+        if IMB_ID_PREFIX.lower() not in imb_id.lower():
             imb_id = ''
 
         # Find the start of the GPS table and load all the data from it into a string,
@@ -394,6 +399,8 @@ def second_process_for_first_file_type(current_file, directory):
         # Process the gps data so that the data moves into the right columns.
         # Use the datetime column as the index. Assign the appropriate headers as well using the variables at the top.
         # Pick out the rows where the checksum value is not present.
+
+        gps_df.replace("", np.nan, inplace=True)
         rows_to_shift = gps_df[gps_df[15].isnull()].index
 
         # Make them all strings to avoid pandas bug.
@@ -651,7 +658,7 @@ def second_process_for_third_folder(current_file, directory):
 
     # Make the full path of the file to be processed and read it in as bytes.
     file_path = str(pathlib2.Path(directory, current_file))
-    file_pointer = open(file_path, 'rb')
+    file_pointer = open(file_path, 'rbU')
 
     # Read in the file line by line.
     curr_line = file_pointer.readline()
@@ -698,12 +705,14 @@ def second_process_for_third_folder(current_file, directory):
     else:
         # Store the Buoy id.
         imb_id = curr_line.strip()
+        curr_line = file_pointer.readline()
+
 
         # Find the start of the IMB_data table and load all the data from it into a string,
         # and remove excess newline characters.
-        while curr_line and (IMB_data_table not in curr_line):
+        """while curr_line and (IMB_data_table not in curr_line):
             curr_line = file_pointer.readline()
-        curr_line = file_pointer.readline()
+        curr_line = file_pointer.readline()"""
 
         # Look for an indication that the end of the transmission has been reached.
         # Either a bunch of dashes or text saying the transmission is finished.
@@ -911,10 +920,10 @@ def do_process(working_directory=WORKING_DIRECTORY):
 # second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test-IMB_Data_Backup\Outputs\IMB_03272010", 2010)
 
 
-do_process()
+#do_process()
 
 # second_imb_process("C:\Users\CEOS\Desktop\Outputs\IMB_07112010", 2010)
-
+second_imb_process("/Users/kikanye/PycharmProjects/IMB-Scripts/hand_tests", 2009)
 """second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_02272011", 2011)
 second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_02282011", 2011)
 second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_03012011", 2011)
