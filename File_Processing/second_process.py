@@ -867,8 +867,22 @@ def second_process_for_third_folder(current_file, directory):
         # Make a list of all the data lines to handle newline characters in weird places.
         data_table_list = data_table.splitlines()
         rows = csv.reader(data_table_list)
-        # Get the maximum number of fields that are in any of the rows
         rows = list(rows)
+
+        # Remove all non-unicode characters and remove the fields that come after them as well.
+        row_count = len(rows)
+        for row_index in range(0, row_count):
+            row = rows[row_index]
+            size = len(row)
+            for i in range(0, size):
+                try:
+                    encoded = row[i].encode('ascii')
+                except UnicodeDecodeError:
+                    print ("Non-Unicode characters detected")
+                    rows[row_index] = row[0:i]
+                    break
+
+        # Get the maximum number of fields that are in any of the rows
         max_length = max(len(row) for row in rows)
 
         # Create the list of headers to be used for the file.
@@ -1003,9 +1017,9 @@ def do_process(working_directory=WORKING_DIRECTORY):
 
 #do_process()
 
-second_imb_process("C:\Users\CEOS\Desktop\T1\IMB_LogFile_Archive\\01\\2009\Outputs\IMB_09242009", "01")
-second_imb_process("C:\Users\CEOS\Desktop\T1\IMB_LogFile_Archive\\02\\2011\Outputs\IMB_01312011", "02")
-second_imb_process("C:\Users\CEOS\Desktop\T1\IMB_LogFile_Archive\\03\\2014\Outputs\IMB_01182014", "03")
+#second_imb_process("/Users/kikanye/Desktop/IMB-New-Tests/IMB_LogFile_Archive/01/2009/Outputs/IMB_09242009", "01")
+#second_imb_process("/Users/kikanye/Desktop/IMB-New-Tests/IMB_LogFile_Archive/02/2011//Outputs/IMB_01312011", "02")
+second_imb_process("/Users/kikanye/Desktop/IMB-New-Tests/IMB_LogFile_Archive/03/2014/Outputs/IMB_01162014", "03")
 
 """second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_02272011", 2011)
 second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_02282011", 2011)
