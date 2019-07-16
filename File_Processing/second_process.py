@@ -656,6 +656,20 @@ def second_process_for_second_folder(current_file, directory):
         rows = csv.reader(data_table_list)
         # Get the maximum number of fields that are in any of the rows
         rows = list(rows)
+
+        # Remove all non-unicode characters and remove the fields that come after them as well.
+        row_count = len(rows)
+        for row_index in range(0, row_count):
+            row = rows[row_index]
+            size = len(row)
+            for i in range(0, size):
+                try:
+                    encoded = row[i].encode('ascii')
+                except UnicodeDecodeError:
+                    rows[row_index] = row[0:i]
+                    break
+
+        # Get the maximum number of fields that are in any of the rows
         max_length = max(len(row) for row in rows)
 
         # Create the list of headers to be used for the file.
@@ -924,7 +938,6 @@ def second_process_for_third_folder(current_file, directory):
         # Remember python does not include the end index when it indexes.
         # max_size+1 is not used here because the first column is an index column and will not be included in the indexing.
         full_dataframe = full_dataframe.iloc[:,0:max_size]
-
         list_of_rows = full_dataframe.to_dict("records")
 
         full_dataframe_string = full_dataframe.to_csv()
