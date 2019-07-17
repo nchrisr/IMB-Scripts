@@ -11,7 +11,7 @@ import math
 
 # This dictionary is a representation of the directory structure which should be generated before running this script
 # on the specified working directory.
-DIRECTORY_TREES = {"01": [2009, 2010], "02": [2010, 2011, 2012, 2013], "03": [2014, 2015, 2016]}
+DIRECTORY_TREES = {"01": [2009, 2010], "02": [2010, 2011, 2012, 2013], "03": [2013, 2014, 2015, 2016]}
 
 # Headers for the GPS data
 GPS_HEADERS = ["$GPGGA", "GPS_Time_hhmmss", "Latitude_degrees_decimal_minutes_ddmm.mmmm", "N/S",
@@ -974,7 +974,7 @@ def do_process(working_directory=WORKING_DIRECTORY):
 # second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test-IMB_Data_Backup\Outputs\IMB_03272010", 2010)
 
 
-#do_process()
+do_process()
 
 #second_imb_process("/Users/kikanye/Desktop/IMB-New-Tests/IMB_LogFile_Archive/01/2009/Outputs/IMB_09242009", "01")
 #second_imb_process("/Users/kikanye/Desktop/IMB-New-Tests/IMB_LogFile_Archive/02/2011//Outputs/IMB_02032011", "02")
