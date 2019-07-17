@@ -80,8 +80,6 @@ DATA_LINE = "DATA LINE AFTER CONNECTION STRING"
 # Name of the file containing error logs.
 ERRORS_FILE = "second_process_errors.txt"
 
-# List of symbols to remove
-BAD_SYMBOLS = ["-", "'", '"']
 
 def second_imb_process(directory, type):
     """
@@ -288,14 +286,6 @@ def second_process_for_first_file_type(current_file, directory):
         gps_data_list = gps_data_table.splitlines()
         rows = csv.reader(gps_data_list)
         rows = list(rows)
-        for curr_row in rows:
-            has_checksum = False
-            for i in range(0, len(curr_row)):
-                if '*' in curr_row[i]:
-                    has_checksum = True
-                    break
-            if not(has_checksum):
-                curr_row.append("*")
 
         # Read the gps data into a dataframe, set the index to the datetime column,
         # remove None values and make them nan.
@@ -400,100 +390,6 @@ def second_process_for_first_file_type(current_file, directory):
         # Return this csv string, also return the name to be used for the generated file.
         final_merge_df.index.names = ['Device_DateTime_UTC']
         final_merge_df = final_merge_df.drop(["Unknown-1", "Unknown-2", "Unknown-3"], axis=1)
-        list_of_rows = final_merge_df.to_dict("records")
-
-        """
-        for current_dictionary in list_of_rows:
-            for key in current_dictionary:
-                if current_dictionary[key] in BAD_SYMBOLS:
-                    current_dictionary[key] = None
-                if key == "$GPGGA":
-                    try:
-                        if current_dictionary[key]!="$GPGGA":
-                            current_dictionary["$GPGGA"] = None
-                    except Exception as e:
-                        current_dictionary[key] = None
-                elif key == "GPS_Time_hhmmss":
-                    try:
-                        current_dictionary[key] = int(current_dictionary[key])
-                        if len(((str(current_dictionary[key])).split('.'))[0]) != 5:
-                            current_dictionary[key] = None
-                    except Exception as e:
-                        current_dictionary[key] = None
-                elif key == "Latitude_degrees_decimal_minutes_ddmm.mmmm":
-                    try:
-                        if not(isinstance(current_dictionary[key], float)):
-                            float(current_dictionary[key])
-                    except Exception as e:
-                        current_dictionary[key] = None
-                elif key == "N/S":
-                    try:
-                        if current_dictionary[key].lower()!="n" and current_dictionary[key].lower()!="s":
-                            current_dictionary["key"] = None
-                    except Exception as e:
-                        current_dictionary[key] = None
-                elif key == "Longitude_degrees_decimal_minutes_ddmm.mmmm":
-                    try:
-                        if not(isinstance(current_dictionary[key], float)):
-                            float(current_dictionary[key])
-                    except Exception as e:
-                        current_dictionary[key] = None
-                elif key == "W/E":
-                    try:
-                        if current_dictionary[key].lower()!="w" and current_dictionary[key].lower()!="e":
-                            current_dictionary["key"] = None
-                    except Exception as e:
-                        current_dictionary[key] = None
-                elif key == "Quality Indicator":
-                    try:
-                        if not(isinstance(current_dictionary[key], int)):
-                            current_dictionary[key] = int(current_dictionary)
-                    except Exception as e:
-                        current_dictionary[key] = None
-                elif key == "Number of Satellites Used":
-                    try:
-                        if not(isinstance(current_dictionary[key], int)):
-                            current_dictionary[key] = int(current_dictionary)
-                    except Exception as e:
-                        current_dictionary[key] = None
-                elif key == "HDOP(horizontal dilution of precision)":
-                    try:
-                        if not(isinstance(current_dictionary[key], float)):
-                            float(current_dictionary[key])
-                    except Exception as e:
-                        current_dictionary[key] = None
-                elif key == "Antenna altitude":
-                    try:
-                        if not(isinstance(current_dictionary[key], float)):
-                            float(current_dictionary[key])
-                    except Exception as e:
-                        current_dictionary[key] = None
-                elif key == "altitude units (M(metres)/F(feet))":
-                    try:
-                        if current_dictionary[key].lower() != "m" and current_dictionary[key].lower() != "f":
-                            current_dictionary["key"] = None
-                    except Exception as e:
-                        current_dictionary[key] = None
-                elif key == "Geoidal Separation":
-                    try:
-                        if not(isinstance(current_dictionary[key], float)):
-                            float(current_dictionary[key])
-                    except Exception as e:
-                        current_dictionary[key] = None
-                elif key == "Geoidal Separation Units (M(metres)/F(feet))":
-                    try:
-                        if current_dictionary[key].lower() != "m" and current_dictionary[key].lower() != "f":
-                            current_dictionary["key"] = None
-                    except Exception as e:
-                        current_dictionary[key] = None
-                elif key == "Checksum":
-                    if not (bool(re.search("(\*\d\d|[a-zA-Z])"), current_dictionary[key])):
-                        current_dictionary[key] = None
-                elif THERMISTOR_TEMPERATURE_HEADERS in key:
-                    try:
-                        float(current_dictionary[key])
-                    except Exception as e:
-                        current_dictionary[key] = None """
         output_data_string = final_merge_df.to_csv()
         output_data_string = top_metadata + output_data_string
 
@@ -700,6 +596,35 @@ def second_process_for_second_folder(current_file, directory):
 
         # Break up the gps string into seperate columns and delete the original gps string column
         gps_fields_df = full_dataframe["GPS_STRING"].str.split(",", expand=True)
+
+        # Process the gps data so that the data moves into the right columns.
+        # Use the datetime column as the index. Assign the appropriate headers as well using the variables at the top.
+        # Pick out the rows where the checksum value is not present.
+
+        gps_fields_df.replace("", np.nan, inplace=True)
+        gps_fields_df.replace(to_replace=[None], value=np.nan, inplace=True)
+        rows_to_shift = gps_fields_df[gps_fields_df[14].isnull()].index
+
+        # Make them all strings to avoid pandas bug.
+        gps_df_as_strings = gps_fields_df.astype(str)
+        num_bad_rows = len(rows_to_shift)
+        count = 0
+        shift_count = 0  # Number of times shift has occurred.
+        # The checksum field can be assumed to be present for all rows, then shift the data until there is data in the
+        # checksum field for all rows.
+        while (num_bad_rows > 0) and (shift_count <= 15):
+            # If you have shifted more than 16 times, the checksum values probably do not exist.
+            # shift the data, get a csv string and re-read that into a dataframe to maintain the previous datatypes.
+            gps_df_as_strings.loc[rows_to_shift] = gps_df_as_strings.loc[rows_to_shift].shift(periods=1, axis=1)
+            gps_df_new_string = gps_df_as_strings.to_csv(header=None)
+            gps_fields_df = pd.read_csv(StringIO.StringIO(gps_df_new_string), header=None, index_col=0)
+
+            # Get the new set of data that needs their data shifted
+            rows_to_shift = gps_fields_df[gps_fields_df[15].isnull()].index
+            num_bad_rows = len(rows_to_shift)
+            count += 1
+            shift_count += 1
+        gps_fields_df = gps_df_as_strings
         gps_fields_df.columns = GPS_HEADERS[0:-3]
         full_dataframe.drop("GPS_STRING", axis=1, inplace=True)
         location = 0
@@ -927,6 +852,35 @@ def second_process_for_third_folder(current_file, directory):
 
         # Break up the gps string into seperate columns and delete the original gps string column
         gps_fields_df = full_dataframe["GPS_STRING"].str.split(",", expand=True)
+
+        # Process the gps data so that the data moves into the right columns.
+        # Use the datetime column as the index. Assign the appropriate headers as well using the variables at the top.
+        # Pick out the rows where the checksum value is not present.
+
+        gps_fields_df.replace("", np.nan, inplace=True)
+        gps_fields_df.replace(to_replace=[None], value=np.nan, inplace=True)
+        rows_to_shift = gps_fields_df[gps_fields_df[14].isnull()].index
+
+        # Make them all strings to avoid pandas bug.
+        gps_df_as_strings = gps_fields_df.astype(str)
+        num_bad_rows = len(rows_to_shift)
+        count = 0
+        shift_count = 0  # Number of times shift has occurred.
+        # The checksum field can be assumed to be present for all rows, then shift the data until there is data in the
+        # checksum field for all rows.
+        while (num_bad_rows > 0) and (shift_count <= 15):
+            # If you have shifted more than 16 times, the checksum values probably do not exist.
+            # shift the data, get a csv string and re-read that into a dataframe to maintain the previous datatypes.
+            gps_df_as_strings.loc[rows_to_shift] = gps_df_as_strings.loc[rows_to_shift].shift(periods=1, axis=1)
+            gps_df_new_string = gps_df_as_strings.to_csv(header=None)
+            gps_fields_df = pd.read_csv(StringIO.StringIO(gps_df_new_string), header=None, index_col=0)
+
+            # Get the new set of data that needs their data shifted
+            rows_to_shift = gps_fields_df[gps_fields_df[15].isnull()].index
+            num_bad_rows = len(rows_to_shift)
+            count += 1
+            shift_count += 1
+        gps_fields_df = gps_df_as_strings
         gps_fields_df.columns = GPS_HEADERS[0:-3]
         full_dataframe.drop("GPS_STRING", axis=1, inplace=True)
         location = 0
@@ -1031,8 +985,8 @@ def do_process(working_directory=WORKING_DIRECTORY):
 #do_process()
 
 #second_imb_process("/Users/kikanye/Desktop/IMB-New-Tests/IMB_LogFile_Archive/01/2009/Outputs/IMB_09242009", "01")
-#second_imb_process("/Users/kikanye/Desktop/IMB-New-Tests/IMB_LogFile_Archive/02/2011//Outputs/IMB_01312011", "02")
-second_imb_process("/Users/kikanye/Desktop/IMB-New-Tests/IMB_LogFile_Archive/03/2014/Outputs/IMB_01162014", "03")
+#second_imb_process("/Users/kikanye/Desktop/IMB-New-Tests/IMB_LogFile_Archive/02/2011//Outputs/IMB_02032011", "02")
+#second_imb_process("/Users/kikanye/Desktop/IMB-New-Tests/IMB_LogFile_Archive/03/2014/Outputs/IMB_01172014", "03")
 
 """second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_02272011", 2011)
 second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_02282011", 2011)
