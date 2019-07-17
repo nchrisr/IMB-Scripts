@@ -721,18 +721,10 @@ def second_process_for_third_folder(current_file, directory):
             if id_prefix.lower() in imb_id.lower():
                 valid_id = True
                 break
-
         if not (valid_id):
             imb_id = str(None)
 
         curr_line = file_pointer.readline()
-
-        # Find the start of the IMB_data table and load all the data from it into a string,
-        # and remove excess newline characters.
-        """while curr_line and (IMB_data_table not in curr_line):
-            curr_line = file_pointer.readline()
-        curr_line = file_pointer.readline()"""
-
         # Look for an indication that the end of the transmission has been reached.
         # Either a bunch of dashes or text saying the transmission is finished.
         while curr_line and (curr_line.replace(DASHES, '')) and (END_TRANSMIT not in curr_line):
