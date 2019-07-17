@@ -601,12 +601,12 @@ def second_process_for_second_folder(current_file, directory):
         # Use the datetime column as the index. Assign the appropriate headers as well using the variables at the top.
         # Pick out the rows where the checksum value is not present.
 
-        gps_fields_df.replace("", np.nan, inplace=True)
-        gps_fields_df.replace(to_replace=[None], value=np.nan, inplace=True)
+        #gps_fields_df.replace("", np.nan, inplace=True)
+        #gps_fields_df.replace(to_replace=[None], value=np.nan, inplace=True)
         rows_to_shift = gps_fields_df[gps_fields_df[14].isnull()].index
 
         # Make them all strings to avoid pandas bug.
-        gps_df_as_strings = gps_fields_df.astype(str)
+        gps_df_as_strings = gps_fields_df#.astype(str)
         num_bad_rows = len(rows_to_shift)
         count = 0
         shift_count = 0  # Number of times shift has occurred.
@@ -849,12 +849,12 @@ def second_process_for_third_folder(current_file, directory):
         # Use the datetime column as the index. Assign the appropriate headers as well using the variables at the top.
         # Pick out the rows where the checksum value is not present.
 
-        gps_fields_df.replace("", np.nan, inplace=True)
-        gps_fields_df.replace(to_replace=[None], value=np.nan, inplace=True)
+        #gps_fields_df.replace("", np.nan, inplace=True)
+        #gps_fields_df.replace(to_replace=[None], value=np.nan, inplace=True)
         rows_to_shift = gps_fields_df[gps_fields_df[14].isnull()].index
 
         # Make them all strings to avoid pandas bug.
-        gps_df_as_strings = gps_fields_df.astype(str)
+        gps_df_as_strings = gps_fields_df
         num_bad_rows = len(rows_to_shift)
         count = 0
         shift_count = 0  # Number of times shift has occurred.
@@ -977,7 +977,7 @@ def do_process(working_directory=WORKING_DIRECTORY):
 do_process()
 
 #second_imb_process("/Users/kikanye/Desktop/IMB-New-Tests/IMB_LogFile_Archive/01/2009/Outputs/IMB_09242009", "01")
-#second_imb_process("/Users/kikanye/Desktop/IMB-New-Tests/IMB_LogFile_Archive/02/2011//Outputs/IMB_02032011", "02")
+#second_imb_process("C:\Users\CEOS\Desktop\T1\IMB_LogFile_Archive\\02\\2010\Outputs\IMB_07152010", "02")
 #second_imb_process("/Users/kikanye/Desktop/IMB-New-Tests/IMB_LogFile_Archive/03/2014/Outputs/IMB_01172014", "03")
 
 """second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_02272011", 2011)
