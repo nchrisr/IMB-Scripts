@@ -549,6 +549,16 @@ def second_process_for_second_folder(current_file, directory):
 
         # Make a list of all the data lines to handle newline characters in weird places.
         data_table_list = data_table.splitlines()
+        table_size = len(data_table_list)
+        indexes_to_remove = []
+        for i in range(0, table_size):
+            row = data_table_list[i]
+            if not(bool(re.search('("\d+-\d+-\d+ \d+:\d+:\d+")',row))):
+                indexes_to_remove.append(i)
+
+        for the_index in indexes_to_remove:
+            data_table_list.pop(the_index)
+
         rows = csv.reader(data_table_list)
         # Get the maximum number of fields that are in any of the rows
         rows = list(rows)
@@ -974,11 +984,11 @@ def do_process(working_directory=WORKING_DIRECTORY):
 # second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test-IMB_Data_Backup\Outputs\IMB_03272010", 2010)
 
 
-do_process()
+#do_process()
 
 #second_imb_process("/Users/kikanye/Desktop/IMB-New-Tests/IMB_LogFile_Archive/01/2009/Outputs/IMB_09242009", "01")
 #second_imb_process("C:\Users\CEOS\Desktop\T1\IMB_LogFile_Archive\\02\\2010\Outputs\IMB_07152010", "02")
-#second_imb_process("/Users/kikanye/Desktop/IMB-New-Tests/IMB_LogFile_Archive/03/2014/Outputs/IMB_01172014", "03")
+second_imb_process("/Users/kikanye/Desktop/IMB-Tests/IMB_LogFile_Archive/02/2011/Outputs/IMB_01182011", "02")
 
 """second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_02272011", 2011)
 second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_02282011", 2011)
