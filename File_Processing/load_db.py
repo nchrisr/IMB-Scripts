@@ -36,7 +36,7 @@ def clean_data(data_file):
     original_file = str((pathlib2.Path(data_file).parent).name)
     cleaned_file = str(pathlib2.Path(data_file).name)
     dframe = pd.read_csv(data_file, skiprows=6, dtype=str)
-    metadata = pd.read_csv(data_file, nrows=4, header=None)
+    metadata = pd.read_csv(data_file, nrows=5, header=None)
     metadata_dictionary = {}
     for index, current_row in metadata.iterrows():
         key = ((str(current_row[0])).lower()).replace(' ', '_')
@@ -69,21 +69,15 @@ def clean_data(data_file):
                     value = None
 
         metadata_dictionary[key] = value
-        print("H")
     metadata_dictionary["original_file_name"] = original_file
     metadata_dictionary["processed_file"] = cleaned_file
-    print(metadata_dictionary)
 
-
-    #dframe.replace("nan", np.nan, inplace=True)
-    #dframe.replace(to_replace=[None], value=np.nan, inplace=True)
-    csv_str = dframe.to_csv()
+    csv_str = dframe.to_csv(index=False)
     reader = csv.DictReader(StringIO.StringIO(csv_str))
 
     data_list = []
     for row in reader:
-        del row['']
-        print row
+        #print row
         for key in row:
             if row[key] in BAD_SYMBOLS:
                 row[key] = None
@@ -103,7 +97,7 @@ def clean_data(data_file):
                     row[key] = None
             elif key == "GPS_Time_hhmmss":
                 try:
-                    row[key] = int(row[key])
+                    row[key] = str(row[key])
                     if len(((str(row[key])).split('.'))[0]) != 6:
                         row[key] = None
                 except Exception as e:
@@ -111,23 +105,27 @@ def clean_data(data_file):
             elif key == "Latitude_degrees_decimal_minutes_ddmm.mmmm":
                 try:
                     row[key] = float(row[key])
+                    if len(str(row[key])) < 4:
+                        row[key] = None
                 except Exception as e:
                     row[key] = None
             elif key == "N/S":
                 try:
                     if row[key].lower() != "n" and row[key].lower() != "s":
-                        row["key"] = None
+                        row[key] = None
                 except Exception as e:
                     row[key] = None
             elif key == "Longitude_degrees_decimal_minutes_ddmm.mmmm":
                 try:
                     row[key] = float(row[key])
+                    if len(str(row[key])) < 4:
+                        row[key] = None
                 except Exception as e:
                     row[key] = None
             elif key == "W/E":
                 try:
                     if row[key].lower() != "w" and row[key].lower() != "e":
-                        row["key"] = None
+                        row[key] = None
                 except Exception as e:
                     row[key] = None
             elif key == "Quality Indicator":
@@ -153,7 +151,7 @@ def clean_data(data_file):
             elif key == "altitude units (M(metres)/ F(feet))":
                 try:
                     if row[key].lower() != "m" and row[key].lower() != "f":
-                        row["key"] = None
+                        row[key] = None
                 except Exception as e:
                     row[key] = None
             elif key == "Geoidal Separation":
@@ -164,7 +162,7 @@ def clean_data(data_file):
             elif key == "Geoidal Separation Units (M(metres)/ F(feet))":
                 try:
                     if row[key].lower() != "m" and row[key].lower() != "f":
-                        row["key"] = None
+                        row[key] = None
                 except Exception as e:
                     row[key] = None
             elif key == "Checksum":
@@ -209,7 +207,8 @@ def clean_data(data_file):
                     row[key] = None
             elif key == "Minute":
                 try:
-                    if not(0 <= int(row[key]) <= 23):
+                    row[key] = int(row[key])
+                    if not(0 <= int(row[key]) <= 59):
                         row[key] = None
                 except Exception as e:
                     row[key] = None
@@ -306,8 +305,15 @@ def do_process(working_directory=WORKING_DIRECTORY):
                     for curr_file in files_to_process:
                         if curr_file.endswith(CSV_EXTENSION):
                             file_path = str(pathlib2.Path(full_dir_path, curr_file))
-                            cleaned_data = clean_data(file_path)
-                            load_into_database(cleaned_data)
+                            print("Processing {}...".format(file_path))
+                            try:
+                                cleaned_data = clean_data(file_path)
+
+                                load_into_database(cleaned_data)
+                                print("Successfully Processed {}".format(file_path))
+                            except pd.errors.EmptyDataError as e:
+                                print ("Processing file {} failed".format(file_path))
+                                print(e)
 
                 else:
                     print("Invalid directory path {}".format(full_dir_path))

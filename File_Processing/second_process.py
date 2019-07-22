@@ -984,11 +984,11 @@ def do_process(working_directory=WORKING_DIRECTORY):
 # second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test-IMB_Data_Backup\Outputs\IMB_03272010", 2010)
 
 
-#do_process()
+do_process()
 
 #second_imb_process("/Users/kikanye/Desktop/IMB-New-Tests/IMB_LogFile_Archive/01/2009/Outputs/IMB_09242009", "01")
 #second_imb_process("C:\Users\CEOS\Desktop\T1\IMB_LogFile_Archive\\02\\2010\Outputs\IMB_07152010", "02")
-second_imb_process("/Users/kikanye/Desktop/IMB-Tests/IMB_LogFile_Archive/02/2011/Outputs/IMB_01182011", "02")
+#second_imb_process("/Users/kikanye/Desktop/IMB-Tests/IMB_LogFile_Archive/02/2011/Outputs/IMB_01182011", "02")
 
 """second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_02272011", 2011)
 second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_02282011", 2011)
