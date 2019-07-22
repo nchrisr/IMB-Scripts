@@ -105,7 +105,7 @@ def clean_data(data_file):
             elif key == "Latitude_degrees_decimal_minutes_ddmm.mmmm":
                 try:
                     row[key] = float(row[key])
-                    if len(str(row[key])) < 4:
+                    if len(str(row[key])) <= 4:
                         row[key] = None
                 except Exception as e:
                     row[key] = None
@@ -118,7 +118,7 @@ def clean_data(data_file):
             elif key == "Longitude_degrees_decimal_minutes_ddmm.mmmm":
                 try:
                     row[key] = float(row[key])
-                    if len(str(row[key])) < 4:
+                    if len(str(row[key])) <= 4:
                         row[key] = None
                 except Exception as e:
                     row[key] = None
