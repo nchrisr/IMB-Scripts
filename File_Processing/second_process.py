@@ -389,6 +389,12 @@ def second_process_for_first_file_type(current_file, directory):
         # Add the column header for the Datetime, make a csv string, and add the metadata to the top of the string.
         # Return this csv string, also return the name to be used for the generated file.
         final_merge_df.index.names = ['Device_DateTime_UTC']
+
+        # If the datetime values in the device datetime column are not all unique, raise an Error.
+        if not(final_merge_df.index.is_unique):
+            raise Exception("Duplicate values exist in the Device Datetime column,"
+                            " please review the contents of this file...")
+
         final_merge_df = final_merge_df.drop(["Unknown-1", "Unknown-2", "Unknown-3"], axis=1)
         output_data_string = final_merge_df.to_csv()
         output_data_string = top_metadata + output_data_string
@@ -587,6 +593,11 @@ def second_process_for_second_folder(current_file, directory):
         full_dataframe = pd.DataFrame(rows, columns=headers_to_use)
         full_dataframe = full_dataframe.set_index("Device_Datetime_UTC")
 
+        # If the datetime values in the device datetime column are not all unique, raise an Error.
+        if not(full_dataframe.index.is_unique):
+            raise Exception("Duplicate values exist in the Device Datetime column,"
+                            " please review the contents of this file...")
+
         # Remove all rows of data where the GPS string was not transmitted completely,
         # This is done because it would cause bad data in the temperature fields.
         row_count = len(full_dataframe)
@@ -611,8 +622,6 @@ def second_process_for_second_folder(current_file, directory):
         # Use the datetime column as the index. Assign the appropriate headers as well using the variables at the top.
         # Pick out the rows where the checksum value is not present.
 
-        #gps_fields_df.replace("", np.nan, inplace=True)
-        #gps_fields_df.replace(to_replace=[None], value=np.nan, inplace=True)
         rows_to_shift = gps_fields_df[gps_fields_df[14].isnull()].index
 
         # Make them all strings to avoid pandas bug.
@@ -835,6 +844,11 @@ def second_process_for_third_folder(current_file, directory):
         full_dataframe = pd.DataFrame(rows, columns=headers_to_use)
         full_dataframe = full_dataframe.set_index("Device_Datetime_UTC")
 
+        # If the datetime values in the device datetime column are not all unique, raise an Error.
+        if not(full_dataframe.index.is_unique):
+            raise Exception("Duplicate values exist in the Device Datetime column,"
+                            " please review the contents of this file...")
+
         # Remove all rows of data where the GPS string was not transmitted completely,
         # This is done because it would cause bad data in the temperature fields.
         row_count = len(full_dataframe)
@@ -859,8 +873,6 @@ def second_process_for_third_folder(current_file, directory):
         # Use the datetime column as the index. Assign the appropriate headers as well using the variables at the top.
         # Pick out the rows where the checksum value is not present.
 
-        #gps_fields_df.replace("", np.nan, inplace=True)
-        #gps_fields_df.replace(to_replace=[None], value=np.nan, inplace=True)
         rows_to_shift = gps_fields_df[gps_fields_df[14].isnull()].index
 
         # Make them all strings to avoid pandas bug.
@@ -894,7 +906,6 @@ def second_process_for_third_folder(current_file, directory):
         # Remember python does not include the end index when it indexes.
         # max_size+1 is not used here because the first column is an index column and will not be included in the indexing.
         full_dataframe = full_dataframe.iloc[:,0:max_size]
-        list_of_rows = full_dataframe.to_dict("records")
 
         full_dataframe_string = full_dataframe.to_csv()
         output_data_string = top_metadata + full_dataframe_string
@@ -986,9 +997,9 @@ def do_process(working_directory=WORKING_DIRECTORY):
 
 do_process()
 
-#second_imb_process("/Users/kikanye/Desktop/IMB-New-Tests/IMB_LogFile_Archive/01/2009/Outputs/IMB_09242009", "01")
+#second_imb_process("C:\Users\CEOS\Desktop\T1\IMB_LogFile_Archive\\01\\2009\Outputs\IMB_09202009", "01")
+#second_imb_process("C:\Users\CEOS\Desktop\T1\IMB_LogFile_Archive\\02\\2012\Outputs\IMB_04102012", "02")
 #second_imb_process("C:\Users\CEOS\Desktop\T1\IMB_LogFile_Archive\\02\\2010\Outputs\IMB_07152010", "02")
-#second_imb_process("/Users/kikanye/Desktop/IMB-Tests/IMB_LogFile_Archive/02/2011/Outputs/IMB_01182011", "02")
 
 """second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_02272011", 2011)
 second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test_files\sample second folder process tests\IMB_02282011", 2011)
