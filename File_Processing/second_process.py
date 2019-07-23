@@ -656,8 +656,6 @@ def second_process_for_second_folder(current_file, directory):
         # max_size+1 is not used here because the first column is an index column and will not be included in the indexing.
         full_dataframe = full_dataframe.iloc[:,0:max_size]
 
-        list_of_rows = full_dataframe.to_dict("records")
-
         full_dataframe_string = full_dataframe.to_csv()
         output_data_string = top_metadata + full_dataframe_string
 
