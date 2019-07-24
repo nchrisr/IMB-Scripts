@@ -22,23 +22,27 @@ GPS_HEADERS = ["$GPGGA", "GPS_Time_hhmmss", "Latitude_degrees_decimal_minutes_dd
 
 # Headers for Output1 data
 OUTPUT_ONE_HEADERS = ["Year", "Month", "Day", "Day of year", "Hour", "Minute", "Seconds",
-                      "Date Logger temperature", "Battery voltage", "Air temperature", "Sea Level Pressure",
+                      "Date Logger temperature", "Battery Voltage", "Air temperature", "Sea Level Pressure",
                       "Raw under water sounder distance", "UW sounder distance", "Raw snow sounder distance",
                       "Snow sounder quality", "Corrected Snow sounder distance"]
 
 OUTPUT_ONE_HEADERS_NO_DAY_OF_YEAR = ["Year", "Month", "Day", "Hour", "Minute", "Seconds",
-                      "Date Logger temperature", "Battery voltage", "Air temperature", "Sea Level Pressure",
+                      "Date Logger temperature", "Battery Voltage", "Air temperature", "Sea Level Pressure",
                       "Raw under water sounder distance", "UW sounder distance", "Raw snow sounder distance",
                       "Snow sounder quality", "Corrected Snow sounder distance"]
 
 # Headers for Therm data
-THERM_HEADERS = ["Battery Voltage"]
+THERM_HEADERS = ["Battery Voltage-2"]
 
 # Template for Therm data headers.
 THERMISTOR_TEMPERATURE_HEADERS = "Thermistor Temperature-"
 
 # Headers for second data type
 SECOND_DATA_TYPE_INTERIM_HEADERS = ["Device_Datetime_UTC", "GPS_STRING"]+OUTPUT_ONE_HEADERS+THERM_HEADERS
+
+# 2012, 2013 second data type headers
+SECOND_DATA_TYPE_INTERIM_HEADERS_NO_DOY = ["Device_Datetime_UTC", "GPS_STRING"]+OUTPUT_ONE_HEADERS_NO_DAY_OF_YEAR\
+                                          +THERM_HEADERS
 
 # Headers for third data type
 THIRD_DATA_TYPE_INTERIM_HEADERS = ["Device_Datetime_UTC", "GPS_STRING"]+OUTPUT_ONE_HEADERS_NO_DAY_OF_YEAR+THERM_HEADERS
@@ -417,6 +421,8 @@ def second_process_for_second_folder(current_file, directory):
        "filename"-> the file path where the processed data should be saved to.
        "data"-> A 'csv' string representation of the processed data.
        "metadata_only"-> A boolean value indicating whether or not the file has actual data or just metadata."""
+
+    file_year = int((current_file.split("-")[0])[-4:]) # Get the year for the file
     data_line_after_connection = None
     ring_count = 0  # how many rings occurred before transmission of data.
     connect_string = ""  # The string that indicated the establishment of a connection.
@@ -588,9 +594,15 @@ def second_process_for_second_folder(current_file, directory):
         max_length = max(len(row) for row in rows)
 
         # Create the list of headers to be used for the file.
-        headers_to_use = [] + SECOND_DATA_TYPE_INTERIM_HEADERS
-        for i in range(1, (max_length - len(SECOND_DATA_TYPE_INTERIM_HEADERS)) + 1):
-            headers_to_use.append(THERMISTOR_TEMPERATURE_HEADERS + str(i))
+        # Do this based on the year of the file because the different years have different fields.
+        if file_year == 2010 or file_year == 2011:
+            headers_to_use = [] + SECOND_DATA_TYPE_INTERIM_HEADERS
+            for i in range(1, (max_length - len(SECOND_DATA_TYPE_INTERIM_HEADERS)) + 1):
+                headers_to_use.append(THERMISTOR_TEMPERATURE_HEADERS + str(i))
+        else:
+            headers_to_use = [] + SECOND_DATA_TYPE_INTERIM_HEADERS_NO_DOY
+            for i in range(1, (max_length - len(SECOND_DATA_TYPE_INTERIM_HEADERS_NO_DOY)) + 1):
+                headers_to_use.append(THERMISTOR_TEMPERATURE_HEADERS + str(i))
 
         # Read the data into a dataframe from the parsed string.
         full_dataframe = pd.DataFrame(rows, columns=headers_to_use)

@@ -217,7 +217,7 @@ def clean_data(data_file):
                     row[key] = int(row[key])
                 except Exception as e:
                     row[key] = None
-            elif key == "Date Logger temperature" or key == "Battery voltage" or key == "Air temperature" or key == "Sea Level Pressure" or key=="Battery Voltage":
+            elif key == "Date Logger temperature" or key == "Battery Voltage" or key == "Air temperature" or key == "Sea Level Pressure" or key=="Battery Voltage-2":
                 try:
                     row[key] = float(row[key])
                 except Exception as e:
