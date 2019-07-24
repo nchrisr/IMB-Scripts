@@ -37,8 +37,8 @@ HEADERS_ORDER3 = ["Device_Datetime_UTC", "GPS_Hour", "GPS_Minute", "GPS_Second",
                   "Thermistor Temperature-62","Thermistor Temperature-63", "Thermistor Temperature-64",
                   "Thermistor Temperature-65", "Thermistor Temperature-66", "Thermistor Temperature-67",
                   "Thermistor Temperature-68", "Thermistor Temperature-7", "Thermistor Temperature-8",
-                  "Thermistor Temperature-9", "UW sounder distance","Year","altitude_units","connection_string",
-                  "imb_id", "original_file_name", "processed_file_name"
+                  "Thermistor Temperature-9", "connection_string", "imb_id", "original_file_name",
+                  "processed_file_name"
                   ]
 
 DATABASE = "Ice_Mass_Buoy_Data"
@@ -151,4 +151,5 @@ for id in IMB_IDS:
         data = get_data(id)
         data = clean_data(data)
         df = pd.DataFrame(data)
+        df = df[[]+HEADERS_ORDER3]
         df.to_csv(id+".csv", index=False)

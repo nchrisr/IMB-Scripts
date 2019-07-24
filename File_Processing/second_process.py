@@ -26,7 +26,7 @@ OUTPUT_ONE_HEADERS = ["Year", "Month", "Day", "Day of year", "Hour", "Minute", "
                       "Raw under water sounder distance", "UW sounder distance", "Raw snow sounder distance",
                       "Snow sounder quality", "Corrected Snow sounder distance"]
 
-OUTPUT_ONE_HEADERS_NO_DAY_OF_YEAR = ["Year", "Month", "Day", "Day of Year", "Hour", "Minute", "Seconds",
+OUTPUT_ONE_HEADERS_NO_DAY_OF_YEAR = ["Year", "Month", "Day", "Hour", "Minute", "Seconds",
                       "Date Logger temperature", "Battery voltage", "Air temperature", "Sea Level Pressure",
                       "Raw under water sounder distance", "UW sounder distance", "Raw snow sounder distance",
                       "Snow sounder quality", "Corrected Snow sounder distance"]
@@ -38,8 +38,11 @@ THERM_HEADERS = ["Battery Voltage"]
 THERMISTOR_TEMPERATURE_HEADERS = "Thermistor Temperature-"
 
 # Headers for second data type
-SECOND_DATA_TYPE_INTERIM_HEADERS = ["Device_Datetime_UTC", "GPS_STRING"]+OUTPUT_ONE_HEADERS_NO_DAY_OF_YEAR+THERM_HEADERS
-SECOND_DATA_TYPE_HEADERS = []+GPS_HEADERS[0:-3]+OUTPUT_ONE_HEADERS_NO_DAY_OF_YEAR+THERM_HEADERS
+SECOND_DATA_TYPE_INTERIM_HEADERS = ["Device_Datetime_UTC", "GPS_STRING"]+OUTPUT_ONE_HEADERS+THERM_HEADERS
+
+# Headers for third data type
+THIRD_DATA_TYPE_INTERIM_HEADERS = ["Device_Datetime_UTC", "GPS_STRING"]+OUTPUT_ONE_HEADERS_NO_DAY_OF_YEAR+THERM_HEADERS
+
 
 # Prefixes to check for in the IMB Id's for validity
 IMB_ID_prefixes = ["CEOS_IMBB", "BREA_IMB", "Daneborg_IMB", "StnNord_IMB"]
@@ -834,8 +837,8 @@ def second_process_for_third_folder(current_file, directory):
         max_length = max(len(row) for row in rows)
 
         # Create the list of headers to be used for the file.
-        headers_to_use = [] + SECOND_DATA_TYPE_INTERIM_HEADERS
-        for i in range(1, (max_length - len(SECOND_DATA_TYPE_INTERIM_HEADERS)) + 1):
+        headers_to_use = [] + THIRD_DATA_TYPE_INTERIM_HEADERS
+        for i in range(1, (max_length - len(THIRD_DATA_TYPE_INTERIM_HEADERS)) + 1):
             headers_to_use.append(THERMISTOR_TEMPERATURE_HEADERS + str(i))
 
         # Read the data into a dataframe from the parsed string.
