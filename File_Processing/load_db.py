@@ -7,7 +7,6 @@ import pathlib2
 import os
 import re
 import datetime
-import numpy as np
 
 # This dictionary is a representation of the directory structure which should be generated before running this script
 # on the specified working directory.
@@ -77,7 +76,6 @@ def clean_data(data_file):
 
     data_list = []
     for row in reader:
-        #print row
         for key in row:
             if row[key] in BAD_SYMBOLS:
                 row[key] = None
@@ -168,8 +166,12 @@ def clean_data(data_file):
                     row[key] = None
             elif key == "Checksum":
                 try:
-                    if not(bool(re.search("(\*\d)(\d|[a-zA-Z])", str(row[key])))):
+                    match_object = re.search("(\*\d)(\d|[a-zA-Z])", str(row[key]))
+
+                    if not(match_object):
                         row[key] = None
+                    else:
+                        row[key] = match_object.group()
                 except Exception as e:
                     row[key] = None
             elif key == "Year":
@@ -315,7 +317,6 @@ def do_process(working_directory=WORKING_DIRECTORY):
                             except pd.errors.EmptyDataError as e:
                                 print ("Processing file {} failed".format(file_path))
                                 print(e)
-
                 else:
                     print("Invalid directory path {}".format(full_dir_path))
     return
