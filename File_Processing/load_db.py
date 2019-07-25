@@ -97,6 +97,7 @@ def clean_data(data_file):
                     row[key] = None
             elif key == "GPS_Time_hhmmss":
                 try:
+                    temp = float(row[key])
                     row[key] = str(row[key])
                     if len(((str(row[key])).split('.'))[0]) != 6:
                         row[key] = None

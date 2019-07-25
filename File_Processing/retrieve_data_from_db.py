@@ -22,123 +22,56 @@ UPPER_LAT = 50
 LOWER_LONG = -97.9
 UPPER_LONG = -96.5
 
-HEADERS_ORDER1 = ["Device_Datetime_UTC", "GPGGA", "GPS_Hour", "GPS_Minute", "GPS_Second", "Latitude_dd", "Longitude_dd",
-                  "Quality Indicator", "Number of Satellites Used", "HDOP", "Antenna altitude", "altitude_units",
-                  "Geoidal Separation", "Geoidal Separation Units", "Correction age", "Checksum",
-                  "Year", "Month", "Day", "Day of year","Hour", "Minute", "Seconds", "Date Logger temperature",
-                  "Battery Voltage", "Battery Voltage_Units", "Air temperature", "Sea Level Pressure",
-                  "Sea Level Pressure_Units",
-                  "Raw under water sounder distance", "UW sounder distance", "Raw snow sounder distance",
-                  "Snow sounder quality", "Corrected Snow sounder distance", "Thermistor Temperature-1",
-                  "Thermistor Temperature-2", "Thermistor Temperature-3", "Thermistor Temperature-4",
-                  "Thermistor Temperature-5",
-                  "Thermistor Temperature-6", "Thermistor Temperature-7", "Thermistor Temperature-8",
-                  "Thermistor Temperature-9", "Thermistor Temperature-10", "Thermistor Temperature-11",
-                  "Thermistor Temperature-12", "Thermistor Temperature-13", "Thermistor Temperature-14",
-                  "Thermistor Temperature-15", "Thermistor Temperature-16", "Thermistor Temperature-17",
-                  "Thermistor Temperature-18", "Thermistor Temperature-19", "Thermistor Temperature-20",
-                  "Thermistor Temperature-21", "Thermistor Temperature-22", "Thermistor Temperature-23",
-                  "Thermistor Temperature-24", "Thermistor Temperature-25", "Thermistor Temperature-26",
-                  "Thermistor Temperature-27", "Thermistor Temperature-28", "Thermistor Temperature-29",
-                  "Thermistor Temperature-30", "Thermistor Temperature-31", "Thermistor Temperature-32",
-                  "Thermistor Temperature-33", "Thermistor Temperature-34", "Thermistor Temperature-35",
-                  "Thermistor Temperature-36", "Thermistor Temperature-37", "Thermistor Temperature-38",
-                  "Thermistor Temperature-39", "Thermistor Temperature-40", "Thermistor Temperature-41",
-                  "Thermistor Temperature-42", "Thermistor Temperature-43", "Thermistor Temperature-44",
-                  "Thermistor Temperature-45", "connection_string", "imb_id", "original_file_name",
-                  "processed_file_name"]
-HEADERS_ORDER2 = ["connection_string", "imb_id", "original_file_name",
-                  "processed_file_name", "Device_Datetime_UTC", "GPGGA", "GPS_Hour", "GPS_Minute", "GPS_Second", "Latitude_dd", "Longitude_dd",
-                  "Quality Indicator", "Number of Satellites Used", "HDOP", "Antenna altitude", "altitude_units",
-                  "Geoidal Separation", "Geoidal Separation Units", "Correction age", "Checksum",
-                  "Year", "Month", "Day", "Day of year","Hour", "Minute", "Seconds", "Date Logger temperature",
-                  "Battery Voltage", "Battery Voltage_Units", "Air temperature", "Sea Level Pressure",
-                  "Sea Level Pressure_Units",
-                  "Raw under water sounder distance", "UW sounder distance", "Raw snow sounder distance",
-                  "Snow sounder quality", "Corrected Snow sounder distance"] #"Thermistor Temperature-1",
-                  #"Thermistor Temperature-2", "Thermistor Temperature-3", "Thermistor Temperature-4",
-                  #"Thermistor Temperature-5",
-                  #"Thermistor Temperature-6", "Thermistor Temperature-7", "Thermistor Temperature-8",
-                  #"Thermistor Temperature-9", "Thermistor Temperature-10", "Thermistor Temperature-11",
-                  #"Thermistor Temperature-12", "Thermistor Temperature-13", "Thermistor Temperature-14",
-                  #"Thermistor Temperature-15", "Thermistor Temperature-16", "Thermistor Temperature-17",
-                  #"Thermistor Temperature-18", "Thermistor Temperature-19", "Thermistor Temperature-20",
-                  #"Thermistor Temperature-21", "Thermistor Temperature-22", "Thermistor Temperature-23",
-                  #"Thermistor Temperature-24", "Thermistor Temperature-25", "Thermistor Temperature-26",
-                  #"Thermistor Temperature-27", "Thermistor Temperature-28", "Thermistor Temperature-29",
-                  #"Thermistor Temperature-30", "Thermistor Temperature-31", "Thermistor Temperature-32",
-                  #"Thermistor Temperature-33", "Thermistor Temperature-34", "Thermistor Temperature-35",
-                  #"Thermistor Temperature-36", "Thermistor Temperature-37", "Thermistor Temperature-38",
-                  #"Thermistor Temperature-39", "Thermistor Temperature-40", "Thermistor Temperature-41",
-                  #"Thermistor Temperature-42", "Thermistor Temperature-43", "Thermistor Temperature-44",
-                  #"Thermistor Temperature-45", "connection_string", "imb_id", "original_file_name",
-                  #"processed_file_name"]"""
-HEADERS_ORDER3 = ["Device_Datetime_UTC", "GPGGA", "GPS_Hour", "GPS_Minute", "GPS_Second", "Latitude_dd", "Longitude_dd",
-                  "Quality Indicator", "Number of Satellites Used", "HDOP", "Antenna altitude", "altitude_units",
-                  "Geoidal Separation", "Geoidal Separation Units", "Correction age", "Checksum",
-                  "Year", "Month", "Day", "Hour", "Minute", "Seconds", "Date Logger temperature", "Battery Voltage",
-                  "Battery Voltage_Units", "Air temperature", "Sea Level Pressure", "Sea Level Pressure_Units",
-                  "Raw under water sounder distance", "UW sounder distance", "Raw snow sounder distance",
-                  "Snow sounder quality", "Corrected Snow sounder distance", "Thermistor Temperature-1",
-                  "Thermistor Temperature-2", "Thermistor Temperature-3", "Thermistor Temperature-4",
-                  "Thermistor Temperature-5",
-                  "Thermistor Temperature-6", "Thermistor Temperature-7", "Thermistor Temperature-8",
-                  "Thermistor Temperature-9", "Thermistor Temperature-10", "Thermistor Temperature-11",
-                  "Thermistor Temperature-12", "Thermistor Temperature-13", "Thermistor Temperature-14",
-                  "Thermistor Temperature-15", "Thermistor Temperature-16", "Thermistor Temperature-17",
-                  "Thermistor Temperature-18", "Thermistor Temperature-19", "Thermistor Temperature-20",
-                  "Thermistor Temperature-21", "Thermistor Temperature-22", "Thermistor Temperature-23",
-                  "Thermistor Temperature-24", "Thermistor Temperature-25", "Thermistor Temperature-26",
-                  "Thermistor Temperature-27", "Thermistor Temperature-28", "Thermistor Temperature-29",
-                  "Thermistor Temperature-30", "Thermistor Temperature-31", "Thermistor Temperature-32",
-                  "Thermistor Temperature-33", "Thermistor Temperature-34", "Thermistor Temperature-35",
-                  "Thermistor Temperature-36", "Thermistor Temperature-37", "Thermistor Temperature-38",
-                  "Thermistor Temperature-39", "Thermistor Temperature-40", "Thermistor Temperature-41",
-                  "Thermistor Temperature-42", "Thermistor Temperature-43", "Thermistor Temperature-44",
-                  "Thermistor Temperature-45", "Thermistor Temperature-46", "Thermistor Temperature-47",
-                  "Thermistor Temperature-48", "Thermistor Temperature-49", "Thermistor Temperature-50",
-                  "Thermistor Temperature-51", "Thermistor Temperature-52", "Thermistor Temperature-53",
-                  "Thermistor Temperature-54", "Thermistor Temperature-55", "Thermistor Temperature-56",
-                  "Thermistor Temperature-57", "Thermistor Temperature-58", "Thermistor Temperature-59",
-                  "Thermistor Temperature-60", "Thermistor Temperature-61", "Thermistor Temperature-62",
-                  "Thermistor Temperature-63", "Thermistor Temperature-64", "Thermistor Temperature-65",
-                  "Thermistor Temperature-66", "Thermistor Temperature-67", "Thermistor Temperature-68",
-                  "connection_string", "imb_id", "original_file_name",
-                  "processed_file_name"
-                  ]
+ALL_HEADERS_ORDERED_LIST = ["connection_string", "imb_id", "original_file_name","processed_file_name",
+                            "Device_Datetime_UTC", "GPGGA", "GPS_Hour", "GPS_Minute", "GPS_Second", "Latitude_dd",
+                            "Longitude_dd","Quality Indicator", "Number of Satellites Used", "HDOP", "Antenna altitude",
+                            "altitude_units","Geoidal Separation", "Geoidal Separation Units", "Correction age",
+                            "Checksum","Year", "Month", "Day", "Day of year","Hour", "Minute", "Seconds",
+                            "Date Logger temperature","Battery Voltage", "Battery Voltage_Units", "Air temperature",
+                            "Sea Level Pressure","Sea Level Pressure_Units","Raw under water sounder distance",
+                            "UW sounder distance", "Raw snow sounder distance","Snow sounder quality",
+                            "Corrected Snow sounder distance",
+                            "Thermistor Temperature-1","Thermistor Temperature-2", "Thermistor Temperature-3",
+                            "Thermistor Temperature-4","Thermistor Temperature-5","Thermistor Temperature-6",
+                            "Thermistor Temperature-7", "Thermistor Temperature-8","Thermistor Temperature-9",
+                            "Thermistor Temperature-10", "Thermistor Temperature-11","Thermistor Temperature-12",
+                            "Thermistor Temperature-13", "Thermistor Temperature-14","Thermistor Temperature-15",
+                            "Thermistor Temperature-16", "Thermistor Temperature-17","Thermistor Temperature-18",
+                            "Thermistor Temperature-19", "Thermistor Temperature-20","Thermistor Temperature-21",
+                            "Thermistor Temperature-22", "Thermistor Temperature-23","Thermistor Temperature-24",
+                            "Thermistor Temperature-25", "Thermistor Temperature-26","Thermistor Temperature-27",
+                            "Thermistor Temperature-28", "Thermistor Temperature-29","Thermistor Temperature-30",
+                            "Thermistor Temperature-31", "Thermistor Temperature-32","Thermistor Temperature-33",
+                            "Thermistor Temperature-34", "Thermistor Temperature-35","Thermistor Temperature-36",
+                            "Thermistor Temperature-37", "Thermistor Temperature-38","Thermistor Temperature-39",
+                            "Thermistor Temperature-40", "Thermistor Temperature-41","Thermistor Temperature-42",
+                            "Thermistor Temperature-43", "Thermistor Temperature-44","Thermistor Temperature-45",
+                            "Thermistor Temperature-46", "Thermistor Temperature-47","Thermistor Temperature-48",
+                            "Thermistor Temperature-49", "Thermistor Temperature-50","Thermistor Temperature-51",
+                            "Thermistor Temperature-52", "Thermistor Temperature-53","Thermistor Temperature-54",
+                            "Thermistor Temperature-55", "Thermistor Temperature-56","Thermistor Temperature-57",
+                            "Thermistor Temperature-58", "Thermistor Temperature-59","Thermistor Temperature-60",
+                            "Thermistor Temperature-61", "Thermistor Temperature-62","Thermistor Temperature-63",
+                            "Thermistor Temperature-64", "Thermistor Temperature-65","Thermistor Temperature-66",
+                            "Thermistor Temperature-67", "Thermistor Temperature-68", "Thermistor Temperature-69",
+                            "Thermistor Temperature-70", "Thermistor Temperature-71", 'Thermistor Temperature-72',
+                            'Thermistor Temperature-73', 'Thermistor Temperature-74', 'Thermistor Temperature-75',
+                            'Thermistor Temperature-76', 'Thermistor Temperature-77', 'Thermistor Temperature-78',
+                            'Thermistor Temperature-79', 'Thermistor Temperature-80', 'Thermistor Temperature-81',
+                            'Thermistor Temperature-82', 'Thermistor Temperature-83', 'Thermistor Temperature-84',
+                            'Thermistor Temperature-85', 'Thermistor Temperature-86', 'Thermistor Temperature-87',
+                            'Thermistor Temperature-88', 'Thermistor Temperature-89', 'Thermistor Temperature-90',
+                            'Thermistor Temperature-91', 'Thermistor Temperature-92', 'Thermistor Temperature-93',
+                            'Thermistor Temperature-94', 'Thermistor Temperature-95', 'Thermistor Temperature-96',
+                            'Thermistor Temperature-97', 'Thermistor Temperature-98', 'Thermistor Temperature-99',
+                            'Thermistor Temperature-100', 'Thermistor Temperature-101', 'Thermistor Temperature-102',
+                            'Thermistor Temperature-103', 'Thermistor Temperature-104', 'Thermistor Temperature-105',
+                            'Thermistor Temperature-106', 'Thermistor Temperature-107', 'Thermistor Temperature-108',
+                            'Thermistor Temperature-109', 'Thermistor Temperature-110', 'Thermistor Temperature-111',
+                            'Thermistor Temperature-112', 'Thermistor Temperature-113', 'Thermistor Temperature-114',
+                            'Thermistor Temperature-115', 'Thermistor Temperature-116', 'Thermistor Temperature-117',
+                            'Thermistor Temperature-118', 'Thermistor Temperature-119', "Thermistor Temperature-120"]
 
-DEFAULT_HEADERS = ["Device_Datetime_UTC", "GPGGA", "GPS_Hour", "GPS_Minute", "GPS_Second", "Latitude_dd", "Longitude_dd",
-                  "Quality Indicator", "Number of Satellites Used", "HDOP", "Antenna altitude", "altitude_units",
-                  "Geoidal Separation", "Geoidal Separation Units", "Correction age", "Checksum",
-                  "Year", "Month", "Day", "Hour", "Minute", "Seconds", "Date Logger temperature", "Battery Voltage",
-                  "Battery Voltage_Units", "Air temperature", "Sea Level Pressure", "Sea Level Pressure_Units",
-                   "Raw under water sounder distance", "UW sounder distance", "Raw snow sounder distance",
-                   "Snow sounder quality", "Corrected Snow sounder distance", "Thermistor Temperature-1",
-                   "Thermistor Temperature-2", "Thermistor Temperature-3", "Thermistor Temperature-4",
-                   "Thermistor Temperature-5",
-                   "Thermistor Temperature-6", "Thermistor Temperature-7", "Thermistor Temperature-8",
-                   "Thermistor Temperature-9", "Thermistor Temperature-10", "Thermistor Temperature-11",
-                   "Thermistor Temperature-12", "Thermistor Temperature-13", "Thermistor Temperature-14",
-                   "Thermistor Temperature-15", "Thermistor Temperature-16", "Thermistor Temperature-17",
-                   "Thermistor Temperature-18", "Thermistor Temperature-19", "Thermistor Temperature-20",
-                   "Thermistor Temperature-21", "Thermistor Temperature-22", "Thermistor Temperature-23",
-                   "Thermistor Temperature-24", "Thermistor Temperature-25", "Thermistor Temperature-26",
-                   "Thermistor Temperature-27", "Thermistor Temperature-28", "Thermistor Temperature-29",
-                   "Thermistor Temperature-30", "Thermistor Temperature-31", "Thermistor Temperature-32",
-                   "Thermistor Temperature-33", "Thermistor Temperature-34", "Thermistor Temperature-35",
-                   "Thermistor Temperature-36", "Thermistor Temperature-37", "Thermistor Temperature-38",
-                   "Thermistor Temperature-39", "Thermistor Temperature-40", "Thermistor Temperature-41",
-                   "Thermistor Temperature-42", "Thermistor Temperature-43", "Thermistor Temperature-44",
-                   "Thermistor Temperature-45", "Thermistor Temperature-46", "Thermistor Temperature-47",
-                   "Thermistor Temperature-48", "Thermistor Temperature-49", "Thermistor Temperature-50",
-                   "Thermistor Temperature-51", "Thermistor Temperature-52", "Thermistor Temperature-53",
-                   "Thermistor Temperature-54", "Thermistor Temperature-55", "Thermistor Temperature-56",
-                   "Thermistor Temperature-57", "Thermistor Temperature-58", "Thermistor Temperature-59",
-                   "Thermistor Temperature-60", "Thermistor Temperature-61", "Thermistor Temperature-62",
-                   "Thermistor Temperature-63", "Thermistor Temperature-64", "Thermistor Temperature-65",
-                   "Thermistor Temperature-66", "Thermistor Temperature-67", "Thermistor Temperature-68",
-                   "connection_string", "imb_id", "original_file_name",
-                   "processed_file_name"]
 
 def get_data(imb_id):
     client = pymongo.MongoClient()
@@ -269,35 +202,40 @@ def clean_data(data):
 
 test_data = []
 for curr_id in IMB_IDS:
-    headers_to_use = DEFAULT_HEADERS
-    if (curr_id == "CEOS_IMBB01") or (curr_id == "CEOS_IMBB02"):
-        headers_to_use = HEADERS_ORDER1
-
-    if curr_id == "CEOS_IMBB04" or curr_id == "BREA_IMB1" or curr_id == "BREA_IMB2":
-        headers_to_use = HEADERS_ORDER2
-
-    if curr_id == "Daneborg_IMB1" or curr_id == "Daneborg_IMB2" or curr_id == "StnNord_IMB1" or curr_id == "StnNord_IMB2":
-        headers_to_use = HEADERS_ORDER3
 
     data = get_data(curr_id)
     data_dictionary = clean_data(data)
-    if curr_id in EXPECTED_IDS:
-        test_data += data_dictionary["test_list"]
-        df = pd.DataFrame(data_dictionary["non_test_list"])
-        df['Device_Datetime_UTC'] = pd.to_datetime(df['Device_Datetime_UTC'])
-        df = df.sort_values(by='Device_Datetime_UTC')
-        #TODO: Need to add code that checks if headers are in the dataframe before adding them to 'headers_to_use'
-        df = df[headers_to_use]
-        df.to_csv(str(curr_id) + ".csv", index=False)
-    """else:
-        test_data += data_dictionary["test_list"]
-        test_data += data_dictionary["non_test_list"]"""
+    test_data += data_dictionary["test_list"]
+    df = pd.DataFrame(data_dictionary["non_test_list"])
+
+    if "CEOS_IMBB01" in str(curr_id):
+        print ("H")
+    columns = df.columns
+
+    headers_to_use = []
+    for column_name in ALL_HEADERS_ORDERED_LIST:
+        if column_name in columns:
+            headers_to_use.append(column_name)
+
+    df = df[headers_to_use]
+    if "Device_Datetime_UTC" not in df.columns:
+        print "H"
+    df['Device_Datetime_UTC'] = pd.to_datetime(df['Device_Datetime_UTC'])
+    df = df.sort_values(by='Device_Datetime_UTC')
+
+    df.to_csv(str(curr_id) + ".csv", index=False)
 
 
 df = pd.DataFrame(test_data)
 df['Device_Datetime_UTC'] = pd.to_datetime(df['Device_Datetime_UTC'])
 df = df.sort_values(by='Device_Datetime_UTC')
-df = df[DEFAULT_HEADERS]
+columns = df.columns
+headers_to_use = []
+
+for column_name in ALL_HEADERS_ORDERED_LIST:
+    if column_name in columns:
+        headers_to_use.append(column_name)
+df = df[headers_to_use]
 df.to_csv("TEST-DATA" + ".csv", index=False)
 
 

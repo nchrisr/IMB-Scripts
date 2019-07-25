@@ -395,7 +395,7 @@ def second_process_for_first_file_type(current_file, directory):
 
         # Add the column header for the Datetime, make a csv string, and add the metadata to the top of the string.
         # Return this csv string, also return the name to be used for the generated file.
-        final_merge_df.index.names = ['Device_DateTime_UTC']
+        final_merge_df.index.names = ['Device_Datetime_UTC']
 
         # If the datetime values in the device datetime column are not all unique, raise an Error.
         if not(final_merge_df.index.is_unique):
