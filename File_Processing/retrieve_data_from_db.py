@@ -221,8 +221,6 @@ def clean_data(current_data):
     non_test_list = []
     test_list = []
     for index in range(0, len(current_data)):
-        if count == 13195 or count == 13194:
-            print("H...")
         row = current_data[index]
         try:
             output = clean_data_row(row)
@@ -234,7 +232,6 @@ def clean_data(current_data):
 
         except Exception as e:
             print(count)
-            #print("Processing of data row with metadata {} failed".format(row["metadata"]))
             print(row)
             traceback.print_exc()
             print('\n')

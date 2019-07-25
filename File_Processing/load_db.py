@@ -35,8 +35,17 @@ def clean_data(data_file):
     original_file = str((pathlib2.Path(data_file).parent).name)
     cleaned_file = str(pathlib2.Path(data_file).name)
     dframe = pd.read_csv(data_file, skiprows=6, dtype=str)
-    metadata = pd.read_csv(data_file, nrows=5, header=None)
+    metadata = pd.read_csv(data_file, nrows=4, header=None)
+
+    # Process the data line specially due to weird errors.
+    data_line_after_connect = pd.read_csv(data_file, skiprows=4, nrows=1, header=None)
+    data_line_actual = (data_line_after_connect.iloc[0][1:]).to_csv()
     metadata_dictionary = {}
+    if not(bool(data_line_actual.strip())) or data_line_actual.strip() == "None":
+        metadata_dictionary["data_line_after_connection_string"] = None
+    else:
+        metadata_dictionary["data_line_after_connection_string"] = data_line_actual
+
     for index, current_row in metadata.iterrows():
         key = ((str(current_row[0])).lower()).replace(' ', '_')
         value = str(current_row[1])
@@ -308,17 +317,17 @@ def do_process(working_directory=WORKING_DIRECTORY):
                     for curr_file in files_to_process:
                         if curr_file.endswith(CSV_EXTENSION):
                             file_path = str(pathlib2.Path(full_dir_path, curr_file))
-                            print("Processing {}...".format(file_path))
+                            print("\nProcessing {}...".format(file_path))
                             try:
                                 cleaned_data = clean_data(file_path)
 
                                 load_into_database(cleaned_data)
-                                print("Successfully Processed {}".format(file_path))
+                                print("\tSuccessfully Processed {}".format(file_path))
                             except pd.errors.EmptyDataError as e:
-                                print ("Processing file {} failed".format(file_path))
+                                print ("\nProcessing file {} failed".format(file_path))
                                 print(e)
                 else:
-                    print("Invalid directory path {}".format(full_dir_path))
+                    print("\nInvalid directory path {}".format(full_dir_path))
     return
 
 
