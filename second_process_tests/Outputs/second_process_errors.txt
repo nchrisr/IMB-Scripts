@@ -1,3 +1,0 @@
-Processing file IMB_01122010-2.log failed.
-	15
-

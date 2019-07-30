@@ -571,8 +571,9 @@ def second_process_for_second_folder(current_file, directory):
             if not(bool(re.search('("\d+-\d+-\d+ \d+:\d+:\d+")',row))):
                 indexes_to_remove.append(i)
 
-        for the_index in indexes_to_remove:
-            data_table_list.pop(the_index)
+        # Delete in reverse order so that the resizing of the list does not cause issues.
+        for the_index in sorted(indexes_to_remove, reverse=True):
+            del data_table_list[the_index]
 
         rows = csv.reader(data_table_list)
         # Get the maximum number of fields that are in any of the rows
@@ -1008,9 +1009,9 @@ def do_process(working_directory=WORKING_DIRECTORY):
 # second_imb_process("C:\Users\CEOS\PycharmProjects\IMB-Scripts\\test-IMB_Data_Backup\Outputs\IMB_03272010", 2010)
 
 
-do_process()
+#do_process()
 
-#second_imb_process("C:\Users\CEOS\Desktop\T1\IMB_LogFile_Archive\\01\\2009\Outputs\IMB_09202009", "01")
+second_imb_process("/Users/kikanye/PycharmProjects/IMB-Scripts/hand_tests/", "02")
 #second_imb_process("C:\Users\CEOS\Desktop\T1\IMB_LogFile_Archive\\02\\2012\Outputs\IMB_04102012", "02")
 #second_imb_process("C:\Users\CEOS\Desktop\T1\IMB_LogFile_Archive\\02\\2010\Outputs\IMB_07152010", "02")
 
