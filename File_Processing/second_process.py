@@ -399,8 +399,10 @@ def second_process_for_first_file_type(current_file, directory):
 
         # If the datetime values in the device datetime column are not all unique, raise an Error.
         if not(final_merge_df.index.is_unique):
-            raise Exception("Duplicate values exist in the Device Datetime column,"
-                            " please review the contents of this file...")
+            final_merge_df = final_merge_df.loc[~final_merge_df.index.duplicated(keep=False)]
+            print("Deleting duplicate columns!")
+            #raise Exception("Duplicate values exist in the Device Datetime column,"
+                            #" please review the contents of this file...")
 
         final_merge_df = final_merge_df.drop(["Unknown-1", "Unknown-2", "Unknown-3"], axis=1)
         output_data_string = final_merge_df.to_csv()
@@ -520,8 +522,9 @@ def second_process_for_second_folder(current_file, directory):
                             line_list[index]=line_list[index].replace(GPGGA+shortest_string, '')
 
                         # Remove commas from the end of the string.
-                        if line_list[index][-1] == ',':
-                            line_list[index] = line_list[index].rstrip(',')
+                        if len(line_list[index]) > 0:
+                            if line_list[index][-1] == ',':
+                                line_list[index] = line_list[index].rstrip(',')
 
                         # Count the number of quotation marks in the string
                         valid_quotes = 0
@@ -536,8 +539,9 @@ def second_process_for_second_folder(current_file, directory):
                             else:
                                 line_list[index] = line_list[index]+'"'
                     # Remove commas from the end of the string.
-                    if line_list[index][-1] == ',':
-                        line_list[index] = line_list[index].rstrip(',')
+                    if len(line_list[index]) > 0:
+                        if line_list[index][-1] == ',':
+                            line_list[index] = line_list[index].rstrip(',')
                     # Add the processed strings to the data variable
                     # After two strings from the list are processed that's considered one line of data.
                     data += (line_list[index]).strip()
@@ -603,9 +607,12 @@ def second_process_for_second_folder(current_file, directory):
             for i in range(1, (max_length - len(SECOND_DATA_TYPE_INTERIM_HEADERS)) + 1):
                 headers_to_use.append(THERMISTOR_TEMPERATURE_HEADERS + str(i))
         else:
-            headers_to_use = [] + SECOND_DATA_TYPE_INTERIM_HEADERS_NO_DOY
-            for i in range(1, (max_length - len(SECOND_DATA_TYPE_INTERIM_HEADERS_NO_DOY)) + 1):
-                headers_to_use.append(THERMISTOR_TEMPERATURE_HEADERS + str(i))
+            if max_length<len(SECOND_DATA_TYPE_INTERIM_HEADERS_NO_DOY):
+                headers_to_use = SECOND_DATA_TYPE_INTERIM_HEADERS_NO_DOY[0:max_length]
+            else:
+                headers_to_use = [] + SECOND_DATA_TYPE_INTERIM_HEADERS_NO_DOY
+                for i in range(1, (max_length - len(SECOND_DATA_TYPE_INTERIM_HEADERS_NO_DOY)) + 1):
+                    headers_to_use.append(THERMISTOR_TEMPERATURE_HEADERS + str(i))
 
         # Read the data into a dataframe from the parsed string.
         full_dataframe = pd.DataFrame(rows, columns=headers_to_use)
@@ -613,8 +620,10 @@ def second_process_for_second_folder(current_file, directory):
 
         # If the datetime values in the device datetime column are not all unique, raise an Error.
         if not(full_dataframe.index.is_unique):
-            raise Exception("Duplicate values exist in the Device Datetime column,"
-                            " please review the contents of this file...")
+            full_dataframe = full_dataframe.loc[~full_dataframe.index.duplicated(keep=False)]
+            print("Deleting duplicate columns!")
+            #raise Exception("Duplicate values exist in the Device Datetime column,"
+            # " please review the contents of this file...")
 
         # Remove all rows of data where the GPS string was not transmitted completely,
         # This is done because it would cause bad data in the temperature fields.
@@ -639,6 +648,10 @@ def second_process_for_second_folder(current_file, directory):
         # Process the gps data so that the data moves into the right columns.
         # Use the datetime column as the index. Assign the appropriate headers as well using the variables at the top.
         # Pick out the rows where the checksum value is not present.
+
+        while len(gps_fields_df.columns) < 15:
+            gps_fields_df.insert(len(gps_fields_df.columns), len(gps_fields_df.columns),
+                                                 [None]*len(gps_fields_df))
 
         rows_to_shift = gps_fields_df[gps_fields_df[14].isnull()].index
 
@@ -788,8 +801,9 @@ def second_process_for_third_folder(current_file, directory):
                             line_list[index]=line_list[index].replace(GPGGA+shortest_string, '')
 
                         # Remove commas from the end of the string.
-                        if line_list[index][-1] == ',':
-                            line_list[index] = line_list[index].rstrip(',')
+                        if len(line_list[index]) > 0:
+                            if line_list[index][-1] == ',':
+                                line_list[index] = line_list[index].rstrip(',')
 
                         # Count the number of quotation marks in the string
                         valid_quotes = 0
@@ -804,8 +818,9 @@ def second_process_for_third_folder(current_file, directory):
                             else:
                                 line_list[index] = line_list[index]+'"'
                     # Remove commas from the end of the string.
-                    if line_list[index][-1] == ',':
-                        line_list[index] = line_list[index].rstrip(',')
+                    if len(line_list[index]) > 0:
+                        if line_list[index][-1] == ',':
+                            line_list[index] = line_list[index].rstrip(',')
                     # Add the processed strings to the data variable
                     # After two strings from the list are processed that's considered one line of data.
                     data += (line_list[index]).strip()
@@ -857,7 +872,7 @@ def second_process_for_third_folder(current_file, directory):
                 try:
                     encoded = row[i].encode('ascii')
                 except UnicodeDecodeError:
-                    print ("Non-Unicode characters detected")
+                    #print ("Non-Unicode characters detected")
                     rows[row_index] = row[0:i]
                     break
 
@@ -865,9 +880,12 @@ def second_process_for_third_folder(current_file, directory):
         max_length = max(len(row) for row in rows)
 
         # Create the list of headers to be used for the file.
-        headers_to_use = [] + THIRD_DATA_TYPE_INTERIM_HEADERS
-        for i in range(1, (max_length - len(THIRD_DATA_TYPE_INTERIM_HEADERS)) + 1):
-            headers_to_use.append(THERMISTOR_TEMPERATURE_HEADERS + str(i))
+        if max_length < len(THIRD_DATA_TYPE_INTERIM_HEADERS):
+            headers_to_use = THIRD_DATA_TYPE_INTERIM_HEADERS[0:max_length]
+        else:
+            headers_to_use = [] + THIRD_DATA_TYPE_INTERIM_HEADERS
+            for i in range(1, (max_length - len(THIRD_DATA_TYPE_INTERIM_HEADERS)) + 1):
+                headers_to_use.append(THERMISTOR_TEMPERATURE_HEADERS + str(i))
 
         # Read the data into a dataframe from the parsed string.
         full_dataframe = pd.DataFrame(rows, columns=headers_to_use)
@@ -875,8 +893,10 @@ def second_process_for_third_folder(current_file, directory):
 
         # If the datetime values in the device datetime column are not all unique, raise an Error.
         if not(full_dataframe.index.is_unique):
-            raise Exception("Duplicate values exist in the Device Datetime column,"
-                            " please review the contents of this file...")
+            full_dataframe = full_dataframe.loc[~full_dataframe.index.duplicated(keep=False)]
+            print("Deleting duplicate columns!")
+            #raise Exception("Duplicate values exist in the Device Datetime column,"
+             #               " please review the contents of this file...")
 
         # Remove all rows of data where the GPS string was not transmitted completely,
         # This is done because it would cause bad data in the temperature fields.
@@ -901,6 +921,9 @@ def second_process_for_third_folder(current_file, directory):
         # Process the gps data so that the data moves into the right columns.
         # Use the datetime column as the index. Assign the appropriate headers as well using the variables at the top.
         # Pick out the rows where the checksum value is not present.
+        while len(gps_fields_df.columns) < 15:
+            gps_fields_df.insert(len(gps_fields_df.columns), len(gps_fields_df.columns),
+                                                 [None]*len(gps_fields_df))
 
         rows_to_shift = gps_fields_df[gps_fields_df[14].isnull()].index
 
@@ -1024,7 +1047,7 @@ def do_process(working_directory=WORKING_DIRECTORY):
 
 do_process()
 
-#second_imb_process("/Users/kikanye/PycharmProjects/IMB-Scripts/hand_tests/", "02")
+#second_imb_process("/Users/kikanye/PycharmProjects/IMB-Scripts/hand_tests/02", "03")
 #second_imb_process("C:\Users\CEOS\Desktop\T1\IMB_LogFile_Archive\\02\\2012\Outputs\IMB_04102012", "02")
 #second_imb_process("C:\Users\CEOS\Desktop\T1\IMB_LogFile_Archive\\02\\2010\Outputs\IMB_07152010", "02")
 
