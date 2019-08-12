@@ -1,5 +1,4 @@
-"""The functions in this script are used to organize the raw '.log' files by year and by file structure.
-"""
+"""The functions in this script are used to organize the raw '.log' files by year and by file type."""
 import os
 import shutil
 import pathlib2
@@ -27,15 +26,20 @@ def make_directories(working_directory=WORKING_DIRECTORY, directories=DIRECTORY_
 
        The 'working_directory' argument represents the directory in which these new directories will be made."""
 
+    # Make a directory within the directory provided at command line and name each directory made after a key from the
+    # directories argument
     for curr_key in directories:
         sub_dirs = directories[curr_key]
         top_dir_name = str(pathlib2.Path(working_directory, curr_key))
+        # try to make the directory and catch exceptions
         try:
             os.mkdir(top_dir_name)
             print("Successfully created directory {}".format(top_dir_name))
         except Exception as e:
             print("Making directory {} failed".format(top_dir_name))
             print(e)
+        # When you make a directory for each of the keys, make a directory within them, each one named after each item
+        #  in the list which they point to.
         for dir_name in sub_dirs:
             sub_dir_name = str(pathlib2.Path(top_dir_name, str(dir_name)))
             try:
@@ -55,6 +59,8 @@ def arrange_files(working_directory=WORKING_DIRECTORY, directories=DIRECTORY_TRE
         The year in which the file was generated is represented by the last for characters of the filename before the
         file extension in this case."""
     files = os.listdir(working_directory)
+
+    # move files based on the year which the data in them was collected.
     for curr_file in files:
         # Only process '.log' files
         if curr_file.endswith(LOG_FILE_EXTENSION):
@@ -67,6 +73,7 @@ def arrange_files(working_directory=WORKING_DIRECTORY, directories=DIRECTORY_TRE
                         destination = str(pathlib2.Path(working_directory, curr_key, dir_string))
                         source = str(pathlib2.Path(working_directory, curr_file))
                         try:
+                            # move the file and catch errors
                             shutil.move(source, destination)
                             print("Successfully moved file {} to {}".format(curr_file, destination))
                         except Exception as e:
@@ -76,5 +83,6 @@ def arrange_files(working_directory=WORKING_DIRECTORY, directories=DIRECTORY_TRE
     return
 
 
-make_directories()
-arrange_files()
+if __name__ == "__main__" :
+    make_directories()
+    arrange_files()
