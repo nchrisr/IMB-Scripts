@@ -1,3 +1,5 @@
+# **File_Organizer.py**
+
 This script will move files based into directories that signify their file type, based on the year which the data was
 collected. (For a more elaborate description on the file types, see **Raw_files.md**).
 

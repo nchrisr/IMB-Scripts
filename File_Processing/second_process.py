@@ -1,3 +1,7 @@
+"""This function does the bulk of the work in processing the IMB files. It will parse each file and get the metadata
+ and the data and convert it into csv data. It will generate an error file where errors that occurred in the
+ process will be stated."""
+
 import sys
 import os
 import pathlib2
@@ -13,25 +17,26 @@ import math
 # on the specified working directory.
 DIRECTORY_TREES = {"01": [2009, 2010], "02": [2010, 2011, 2012, 2013], "03": [2013, 2014, 2015, 2016]}
 
-# Headers for the GPS data
+# Headers for the GPS data in the first file type
 GPS_HEADERS = ["$GPGGA", "GPS_Time_hhmmss", "Latitude_degrees_decimal_minutes_ddmm.mmmm", "N/S",
                "Longitude_degrees_decimal_minutes_ddmm.mmmm", "W/E", "Quality Indicator", "Number of Satellites Used",
                "HDOP(horizontal dilution of precision)", "Antenna altitude", "altitude units (M(metres)/ F(feet))",
                "Geoidal Separation", "Geoidal Separation Units (M(metres)/ F(feet))", "Correction age",
                "Checksum", "Unknown-1", "Unknown-2", "Unknown-3"]
 
-# Headers for Output1 data
+# Headers for Output1 data in the first file type
 OUTPUT_ONE_HEADERS = ["Year", "Month", "Day", "Day of year", "Hour", "Minute", "Seconds",
                       "Date Logger temperature", "Battery Voltage", "Air temperature", "Sea Level Pressure",
                       "Raw under water sounder distance", "UW sounder distance", "Raw snow sounder distance",
                       "Snow sounder quality", "Corrected Snow sounder distance"]
 
+# Headers for Output one data without the Day of year field
 OUTPUT_ONE_HEADERS_NO_DAY_OF_YEAR = ["Year", "Month", "Day", "Hour", "Minute", "Seconds",
                       "Date Logger temperature", "Battery Voltage", "Air temperature", "Sea Level Pressure",
                       "Raw under water sounder distance", "UW sounder distance", "Raw snow sounder distance",
                       "Snow sounder quality", "Corrected Snow sounder distance"]
 
-# Headers for Therm data
+# Headers for Therm data form the first file type
 THERM_HEADERS = ["Battery Voltage-2"]
 
 # Template for Therm data headers.
@@ -51,6 +56,7 @@ THIRD_DATA_TYPE_INTERIM_HEADERS = ["Device_Datetime_UTC", "GPS_STRING"]+OUTPUT_O
 # Prefixes to check for in the IMB Id's for validity
 IMB_ID_prefixes = ["CEOS_IMBB", "BREA_IMB", "Daneborg_IMB", "StnNord_IMB"]
 
+# Get the working directory string from the command line and save it in a variable.
 WORKING_DIRECTORY = None
 if len(sys.argv) < 2:
     print("Incomplete Arguments... at lease one argument required")
@@ -60,6 +66,7 @@ else:
 
 OUTPUTS_FOLDER = "Outputs"  # outputs folder if files are located there.
 
+# Constants needed during the parsing of all kinds of files.
 NO_CARRIER = "NO CARRIER"
 CONNECT = "CONNECT"
 RING = "RING"
@@ -75,7 +82,7 @@ LOG_EXTENSION = ".log"
 
 # Constants needed for successful parsing of data for second file format.
 IMB_data_table = "----------------IMB_data--------------------"
-GPGGA = '"$GPGGA,' # GPGGA field in gps string.
+GPGGA = '"$GPGGA,'  # GPGGA field in gps string.
 
 # Constants needed for metadata.
 RINGS = "RINGS"
@@ -88,17 +95,19 @@ DATA_LINE = "DATA LINE AFTER CONNECTION STRING"
 ERRORS_FILE = "second_process_errors.txt"
 
 
-def second_imb_process(directory, type):
+def second_imb_process(directory, type_key):
     """
      This function will execute the second process in handling the IMB log files.
      It will process the files which by calling different functions based on what year the files are from.
      The 'directory' argument specifies the directory which the files are located in
-     The 'year' argument specifies what year the data in the file is from.
+     The 'type' argument specifies what 'type' the data in the file is (it should be either 01, 02, or 03 and must be a
+      string.
 
      It generates an error log file that describes all the files that had issues during the process,
      and saves it in the parent directory of the 'directory' argument.
 
      """
+
     # Get the parent directory of the directory argument, and open an error log file.
     parent = str(pathlib2.Path(directory).parent)
     error_file_path = str(pathlib2.Path(parent, ERRORS_FILE))
@@ -115,11 +124,11 @@ def second_imb_process(directory, type):
         if curr_file.endswith(LOG_EXTENSION):
             try:
                 # Process the file based on the file type
-                if type == "01":
+                if type_key == "01":
                     return_data = second_process_for_first_file_type(curr_file, directory)
-                elif type == "02":
-                    return_data = second_process_for_second_folder(curr_file, directory)
-                elif type == "03":
+                elif type_key == "02":
+                    return_data = second_process_for_second_file_type(curr_file, directory)
+                elif type_key == "03":
                     return_data = second_process_for_third_folder(curr_file, directory)
                 else:
                     # If the file type is not known, then make return_data an empty dictionary.
@@ -156,7 +165,7 @@ def second_imb_process(directory, type):
 
 
 def second_process_for_first_file_type(current_file, directory):
-    """This function will handle the processing of log files generated in 2009 and 2010 (regarded as '01' files).
+    """This function will handle the processing of log files regarded as '01' files.
 
        -> 'current_file' is the name of the file being processed
        -> 'directory' is the path to the directory which contains the file being processed.
@@ -164,7 +173,9 @@ def second_process_for_first_file_type(current_file, directory):
 
        "filename"-> the file path where the processed data should be saved to.
        "data"-> A 'csv' string representation of the processed data.
-       "metadata_only"-> A boolean value indicating whether or not the file has actual data or just metadata."""
+       "metadata_only"-> A boolean value indicating whether or not the file has actual data or just metadata.
+
+       If No data was found in the file it will return None. """
     data_line_after_connection = None
     ring_count = 0  # how many rings occurred before transmission of data.
     connect_string = ""  # The string that indicated the establishment of a connection.
@@ -187,7 +198,6 @@ def second_process_for_first_file_type(current_file, directory):
 
     # date_regex matcher
     date_regex = re.compile('(\d+-\d+-\d+ \d+:\d+:\d+")')
-
 
     # Get the connection string and count the number of rings.
     while curr_line and (CONNECT not in curr_line):
@@ -215,6 +225,7 @@ def second_process_for_first_file_type(current_file, directory):
             transmission_completed = False
             connect_string = str(None)
             imb_id = str(None)
+            # Make the metadata csv string.
             top_metadata = RINGS + "," + str(ring_count) + "\n" + \
                            CONNECTION_STRING + "," + connect_string + "\n" + \
                            IMB_ID + "," + imb_id + "\n" + \
@@ -234,7 +245,7 @@ def second_process_for_first_file_type(current_file, directory):
                 valid_id = True
                 break
 
-        if not(valid_id):
+        if not valid_id:
             imb_id = str(None)
 
         # Find the start of the GPS table and load all the data from it into a string,
@@ -265,11 +276,13 @@ def second_process_for_first_file_type(current_file, directory):
         if not ((DASHES in curr_line) or (END_TRANSMIT in curr_line)):
             transmission_completed = False
 
+        # if there was no data in any of the tables then make the metadata string because the file probably
+        # has only metadata.
         if not(gps_data_table or output_one_data_table or therm_data_table):
             transmission_completed = False
-            if not(connect_string):
+            if not connect_string :
                 connect_string = str(None)
-            if not(imb_id):
+            if not imb_id:
                 imb_id = str(None)
             top_metadata = RINGS + "," + str(ring_count) + "\n" + \
                            CONNECTION_STRING + "," + connect_string + "\n" + \
@@ -287,14 +300,12 @@ def second_process_for_first_file_type(current_file, directory):
                        TRANSMISSION_FINISHED_SUCCESSFULLY + "," + str(transmission_completed) + "\n" + \
                        DATA_LINE + "," + str(data_line_after_connection) + "\n" + "\n"
 
-        # Check if the gps data contains invalid characters.
-
-        # Parse the gps data string using the into a list of rows and deal with rows that have no checksum values.
+        # Parse the gps data string using the into a list of rows and deal with rows.
         gps_data_list = gps_data_table.splitlines()
         rows = csv.reader(gps_data_list)
         rows = list(rows)
 
-        # Read the gps data into a dataframe, set the index to the datetime column,
+        # Read the gps data into a data frame, set the index to the datetime column,
         # remove None values and make them nan.
         gps_df = pd.DataFrame(rows)
         gps_df = gps_df.set_index(0)
@@ -305,7 +316,7 @@ def second_process_for_first_file_type(current_file, directory):
         # Parse the data string into a list of rows,
         if output_one_data_table:
             output_one_list = output_one_data_table.splitlines()
-            rows = csv.reader((output_one_list))
+            rows = csv.reader(output_one_list)
             rows = list(rows)
 
             # Read in output1 data into data frame from a string, set the index to the datetime,
@@ -337,10 +348,10 @@ def second_process_for_first_file_type(current_file, directory):
 
         else:
             # If there is no data in the string make an empty data table.
-            cols_headers=[]
+            cols_headers = []
             for i in range(1, 46):
                 cols_headers.append(THERMISTOR_TEMPERATURE_HEADERS + str(i))
-            therm_df = pd.DataFrame(columns =cols_headers, index=gps_df.index)
+            therm_df = pd.DataFrame(columns=cols_headers, index=gps_df.index)
 
         # All the data should have the same number of rows if not there is an issue.
         if not((len(gps_df) == len(therm_df)) and (len(therm_df) == len(output_one_df))):
@@ -363,7 +374,7 @@ def second_process_for_first_file_type(current_file, directory):
         # Process the gps data so that the data moves into the right columns.
         # Use the datetime column as the index. Assign the appropriate headers as well using the variables at the top.
         # Pick out the rows where the checksum value is not present.
-
+        # Shift these rows so that all checksum values move into the right column
         gps_df.replace("", np.nan, inplace=True)
         rows_to_shift = gps_df[gps_df[15].isnull()].index
 
@@ -371,9 +382,9 @@ def second_process_for_first_file_type(current_file, directory):
         gps_df_as_strings = gps_df.astype(str)
         num_bad_rows = len(rows_to_shift)
         count = 0
-        shift_count = 0 # Number of times shift has occurred.
+        shift_count = 0  # Number of times shift has occurred.
         # The checksum field can be assumed to be present for all rows, then shift the data until there is data in the
-        # checksum field for all rows.
+        # checksum field for all rows, or until you have shifted more than 16 times then stop .
         while (num_bad_rows > 0) and (shift_count <= 16):
             # If you have shifted more than 16 times, the checksum values probably do not exist.
             # shift the data, get a csv string and re-read that into a dataframe to maintain the previous datatypes.
@@ -397,24 +408,24 @@ def second_process_for_first_file_type(current_file, directory):
         # Return this csv string, also return the name to be used for the generated file.
         final_merge_df.index.names = ['Device_Datetime_UTC']
 
-        # If the datetime values in the device datetime column are not all unique, raise an Error.
-        if not(final_merge_df.index.is_unique):
+        # If the datetime values in the device datetime column are not all unique, then delete duplicate index values.
+        if not final_merge_df.index.is_unique:
             final_merge_df = final_merge_df.loc[~final_merge_df.index.duplicated(keep=False)]
             print("Deleting duplicate columns!")
-            #raise Exception("Duplicate values exist in the Device Datetime column,"
-                            #" please review the contents of this file...")
 
+        # Drop the unknown columns which will likely be empty
         final_merge_df = final_merge_df.drop(["Unknown-1", "Unknown-2", "Unknown-3"], axis=1)
         output_data_string = final_merge_df.to_csv()
         output_data_string = top_metadata + output_data_string
 
+        # String together the path where the data file will be saved and return it in the dictionary.
         name_to_use = str(pathlib2.Path(directory, imb_id+"-"+current_file.split('.')[0]+".csv"))
 
         return {"filename": name_to_use, "data": output_data_string, "metadata_only": False}
 
 
-def second_process_for_second_folder(current_file, directory):
-    """This function will handle the processing of log files generated in 2009 and 2010 (regarded as '01' files).
+def second_process_for_second_file_type(current_file, directory):
+    """This function will handle the processing of log files generated regarded as '02' files.
 
        -> 'current_file' is the name of the file being processed
        -> 'directory' is the path to the directory which contains the file being processed.
@@ -422,7 +433,9 @@ def second_process_for_second_folder(current_file, directory):
 
        "filename"-> the file path where the processed data should be saved to.
        "data"-> A 'csv' string representation of the processed data.
-       "metadata_only"-> A boolean value indicating whether or not the file has actual data or just metadata."""
+       "metadata_only"-> A boolean value indicating whether or not the file has actual data or just metadata.
+
+       If No data was found in the file it will return None."""
 
     file_year = int((current_file.split("-")[0])[-4:]) # Get the year for the file
     data_line_after_connection = None
@@ -485,7 +498,7 @@ def second_process_for_second_folder(current_file, directory):
                 valid_id = True
                 break
 
-        if not (valid_id):
+        if not valid_id:
             imb_id = str(None)
 
         # Find the start of the IMB_data table and load all the data from it into a string,
@@ -502,7 +515,7 @@ def second_process_for_second_folder(current_file, directory):
                 curr_line = curr_line.replace(DASHES, '')
             # If the line is not an empty line, then use regex to find the data
             if curr_line.strip():
-                # split the line of data into a list using dates as a delimeter
+                # split the line of data into a list using dates as a delimiter
                 line_list = re.split('(\d+-\d+-\d+ \d+:\d+:\d+")', curr_line)
                 data = '"'
                 data_set_count = 0
@@ -512,14 +525,14 @@ def second_process_for_second_folder(current_file, directory):
 
                         # Look for data lines* that have no dates but have GPS strings and remove them.
                         if line_list[index].count(GPGGA) > 1:
-                            temp_split = re.split('("\$GPGGA,)', line_list[index])#line_list[index].split('$GPGGA')
+                            temp_split = re.split('("\$GPGGA,)', line_list[index])
                             print(len(temp_split[4]))
-                            shortest_string=temp_split[2]
+                            shortest_string = temp_split[2]
                             for location in range(1, len(temp_split)):
                                 if not(temp_split[location] == GPGGA):
-                                    if len(temp_split[location])<len(shortest_string):
+                                    if len(temp_split[location]) < len(shortest_string):
                                         shortest_string = temp_split[location]
-                            line_list[index]=line_list[index].replace(GPGGA+shortest_string, '')
+                            line_list[index] = line_list[index].replace(GPGGA+shortest_string, '')
 
                         # Remove commas from the end of the string.
                         if len(line_list[index]) > 0:
@@ -619,11 +632,9 @@ def second_process_for_second_folder(current_file, directory):
         full_dataframe = full_dataframe.set_index("Device_Datetime_UTC")
 
         # If the datetime values in the device datetime column are not all unique, raise an Error.
-        if not(full_dataframe.index.is_unique):
+        if not full_dataframe.index.is_unique:
             full_dataframe = full_dataframe.loc[~full_dataframe.index.duplicated(keep=False)]
             print("Deleting duplicate columns!")
-            #raise Exception("Duplicate values exist in the Device Datetime column,"
-            # " please review the contents of this file...")
 
         # Remove all rows of data where the GPS string was not transmitted completely,
         # This is done because it would cause bad data in the temperature fields.
@@ -632,7 +643,7 @@ def second_process_for_second_folder(current_file, directory):
         # for every row, check to see if the columns after the GPS string contain data
         # If the row does not, add its index to the list of indexes to be dropped.
         for row in range(0, row_count):
-            columns_after_gps = full_dataframe.iloc[[row],1:]
+            columns_after_gps = full_dataframe.iloc[[row], 1:]
             test = columns_after_gps.isnull().all().all()
             if test:
                 the_index = columns_after_gps.index
@@ -656,7 +667,7 @@ def second_process_for_second_folder(current_file, directory):
         rows_to_shift = gps_fields_df[gps_fields_df[14].isnull()].index
 
         # Make them all strings to avoid pandas bug.
-        gps_df_as_strings = gps_fields_df#.astype(str)
+        gps_df_as_strings = gps_fields_df
         num_bad_rows = len(rows_to_shift)
         count = 0
         shift_count = 0  # Number of times shift has occurred.
@@ -684,8 +695,9 @@ def second_process_for_second_folder(current_file, directory):
 
         max_size = row_size(full_dataframe)
         # Remember python does not include the end index when it indexes.
-        # max_size+1 is not used here because the first column is an index column and will not be included in the indexing.
-        full_dataframe = full_dataframe.iloc[:,0:max_size]
+        # max_size+1 is not used here because the first column is an index column and will not be included in the
+        #  indexing.
+        full_dataframe = full_dataframe.iloc[:, 0:max_size]
 
         full_dataframe_string = full_dataframe.to_csv()
         output_data_string = top_metadata + full_dataframe_string
@@ -695,7 +707,7 @@ def second_process_for_second_folder(current_file, directory):
 
 
 def second_process_for_third_folder(current_file, directory):
-    """This function will handle the processing of log files regarded as '03' files).
+    """This function will handle the processing of log files regarded as '03' files.
 
        -> 'current_file' is the name of the file being processed
        -> 'directory' is the path to the directory which contains the file being processed.
@@ -703,7 +715,9 @@ def second_process_for_third_folder(current_file, directory):
 
        "filename"-> the file path where the processed data should be saved to.
        "data"-> A 'csv' string representation of the processed data.
-       "metadata_only"-> A boolean value indicating whether or not the file has actual data or just metadata."""
+       "metadata_only"-> A boolean value indicating whether or not the file has actual data or just metadata.
+
+       If No data was found in the file it will return None."""
     data_line_after_connection = None
     ring_count = 0  # how many rings occurred before transmission of data.
     connect_string = ""  # The string that indicated the establishment of a connection.
@@ -769,7 +783,7 @@ def second_process_for_third_folder(current_file, directory):
             if id_prefix.lower() in imb_id.lower():
                 valid_id = True
                 break
-        if not (valid_id):
+        if not valid_id:
             imb_id = str(None)
 
         curr_line = file_pointer.readline()
@@ -872,7 +886,6 @@ def second_process_for_third_folder(current_file, directory):
                 try:
                     encoded = row[i].encode('ascii')
                 except UnicodeDecodeError:
-                    #print ("Non-Unicode characters detected")
                     rows[row_index] = row[0:i]
                     break
 
@@ -892,11 +905,9 @@ def second_process_for_third_folder(current_file, directory):
         full_dataframe = full_dataframe.set_index("Device_Datetime_UTC")
 
         # If the datetime values in the device datetime column are not all unique, raise an Error.
-        if not(full_dataframe.index.is_unique):
+        if not full_dataframe.index.is_unique:
             full_dataframe = full_dataframe.loc[~full_dataframe.index.duplicated(keep=False)]
             print("Deleting duplicate columns!")
-            #raise Exception("Duplicate values exist in the Device Datetime column,"
-             #               " please review the contents of this file...")
 
         # Remove all rows of data where the GPS string was not transmitted completely,
         # This is done because it would cause bad data in the temperature fields.
@@ -905,7 +916,7 @@ def second_process_for_third_folder(current_file, directory):
         # for every row, check to see if the columns after the GPS string contain data
         # If the row does not, add its index to the list of indexes to be dropped.
         for row in range(0, row_count):
-            columns_after_gps = full_dataframe.iloc[[row],1:]
+            columns_after_gps = full_dataframe.iloc[[row], 1:]
             test = columns_after_gps.isnull().all().all()
             if test:
                 the_index = columns_after_gps.index
@@ -956,8 +967,9 @@ def second_process_for_third_folder(current_file, directory):
 
         max_size = row_size(full_dataframe)
         # Remember python does not include the end index when it indexes.
-        # max_size+1 is not used here because the first column is an index column and will not be included in the indexing.
-        full_dataframe = full_dataframe.iloc[:,0:max_size]
+        # max_size+1 is not used here because the first column is an index column and will not be included in the
+        # indexing.
+        full_dataframe = full_dataframe.iloc[:, 0:max_size]
 
         full_dataframe_string = full_dataframe.to_csv()
         output_data_string = top_metadata + full_dataframe_string
@@ -1040,15 +1052,11 @@ def do_process(working_directory=WORKING_DIRECTORY):
                     second_imb_process(full_dir_path, key)
                 else:
                     print("Invalid directory path {}".format(full_dir_path))
-
     return
 
 # The second_imb_process function can be called on its own to process a specific set of files for a specific year.
 
-do_process()
 
-#second_imb_process("/Users/kikanye/PycharmProjects/IMB-Scripts/hand_tests/02", "03")
-#second_imb_process("C:\Users\CEOS\Desktop\T1\IMB_LogFile_Archive\\02\\2012\Outputs\IMB_04102012", "02")
-#second_imb_process("C:\Users\CEOS\Desktop\T1\IMB_LogFile_Archive\\02\\2010\Outputs\IMB_07152010", "02")
-
-print("End of processing.")
+if __name__ == "__main__":
+    do_process()
+    print("End of processing.")

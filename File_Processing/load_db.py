@@ -1,3 +1,6 @@
+"""This script will load data from the files into a mongoDB database (default fields are set to a local database),
+after they have been run through the second_process.py. """
+
 import pymongo
 import csv
 import pandas as pd
@@ -19,6 +22,7 @@ if len(sys.argv) < 2:
 else:
     WORKING_DIRECTORY = sys.argv[1]
 
+# Constants used from the processing of the data.
 CSV_EXTENSION = '.csv'
 DATABASE = "Ice_Mass_Buoy_Data"
 COLLECTION = "Series"
@@ -32,6 +36,9 @@ THERMISTOR_TEMPERATURE_HEADERS = "Thermistor Temperature-"
 
 
 def clean_data(data_file):
+    """This function cleans the data from a file before the data is loaded into the database.
+       data_file: is the path to the file being processed"""
+    # Get the full file path and read in the data and metadata into separate dataframes.
     original_file = str((pathlib2.Path(data_file).parent).name)
     cleaned_file = str(pathlib2.Path(data_file).name)
     dframe = pd.read_csv(data_file, skiprows=6, dtype=str)
@@ -46,10 +53,13 @@ def clean_data(data_file):
     else:
         metadata_dictionary["data_line_after_connection_string"] = data_line_actual
 
+    # Make a dictionary from the metadata fields and replace spaces with '_'
     for index, current_row in metadata.iterrows():
         key = ((str(current_row[0])).lower()).replace(' ', '_')
         value = str(current_row[1])
 
+        # Clean the metadata first.
+        # for each key, clean the value into the expected format.
         if key == "rings":
             value = int(value)
         elif key == "connection_string":
@@ -76,13 +86,20 @@ def clean_data(data_file):
                 if value.strip() == "None":
                     value = None
 
+        # Add them all to a dictionary
         metadata_dictionary[key] = value
+
+    # Process the names of the file(s) specially.
     metadata_dictionary["original_file_name"] = original_file
     metadata_dictionary["processed_file"] = cleaned_file
 
+    # Make a csv string from the data.
     csv_str = dframe.to_csv(index=False)
     reader = csv.DictReader(StringIO.StringIO(csv_str))
 
+    # Process each data field as needed.
+    # If a value is same as one of the strings in BAD_SYMBOLS it will be converted to None
+    # Some key names need to be changed as Mongodb does not allow certain characters in the key(s).
     data_list = []
     for row in reader:
         for key in row:
@@ -229,7 +246,8 @@ def clean_data(data_file):
                     row[key] = int(row[key])
                 except Exception as e:
                     row[key] = None
-            elif key == "Date Logger temperature" or key == "Battery Voltage" or key == "Air temperature" or key == "Sea Level Pressure" or key=="Battery Voltage-2":
+            elif key == "Date Logger temperature" or key == "Battery Voltage" or key == "Air temperature" or\
+                    key == "Sea Level Pressure" or key == "Battery Voltage-2":
                 try:
                     row[key] = float(row[key])
                 except Exception as e:
@@ -240,7 +258,8 @@ def clean_data(data_file):
                         row[key] = None
                 except Exception as e:
                     row[key] = None
-            elif key == "UW sounder distance" or key == "Raw snow sounder distance" or key == "Raw sounder quality" or key == "Corrected Snow sounder distance" or key == "Snow sounder quality":
+            elif key == "UW sounder distance" or key == "Raw snow sounder distance" or key == "Raw sounder quality"\
+                    or key == "Corrected Snow sounder distance" or key == "Snow sounder quality":
                 try:
                     row[key] = float(row[key])
                 except Exception as e:
@@ -252,6 +271,7 @@ def clean_data(data_file):
                 except Exception as e:
                     row[key] = None
 
+        # Remove unnecessry fields and add the cleaned data to a list to be returned.
         gpgga = row["$GPGGA"]
         del row["$GPGGA"]
         row["GPGGA"] = gpgga
@@ -291,6 +311,8 @@ def clean_data(data_file):
 
 
 def load_into_database(data_set):
+    """This function will insert a list of dictionaries (data_set) where each dictionary represents a row of data into the
+       Mongodb database."""
     client = pymongo.MongoClient()
     db = client[DATABASE]
     collection = db[COLLECTION]
@@ -303,7 +325,8 @@ def do_process(working_directory=WORKING_DIRECTORY):
     """This function will go down to the the outputs directory within the sub directories in the 'working_directory'
     argument.
 
-    It will call the second_imb_process() function to process each file."""
+    It will call the clean_data() for each file and load the cleaned data into the database using load_into_database().
+    """
 
     # Use the directory tree dictionary to determine the directory to search for data in, and process each file.
     for key in DIRECTORY_TREES:
@@ -331,8 +354,8 @@ def do_process(working_directory=WORKING_DIRECTORY):
     return
 
 
-do_process()
-
-print("End of Processing...")
+if __name__ == "__main__":
+    do_process()
+    print("End of Processing...")
 
 

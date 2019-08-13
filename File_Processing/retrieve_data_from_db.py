@@ -1,3 +1,5 @@
+"""This script retrieves the cleaned data from the MongoDb database and converts them into csv files with appropriate heaers.
+One file is made for each Bouy Id and data with invalid Bouy Ids are put together as well."""
 import pymongo
 import pandas as pd
 import traceback
