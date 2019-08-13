@@ -67,7 +67,7 @@ def parse_error_file(file_path):
     return
 
 
-if __name__ == "__main__" :
+if __name__ == "__main__":
     parse_error_file(ERRORS_FILE)
     print("End of Processing...")
 

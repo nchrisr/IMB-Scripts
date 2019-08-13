@@ -83,6 +83,6 @@ def arrange_files(working_directory=WORKING_DIRECTORY, directories=DIRECTORY_TRE
     return
 
 
-if __name__ == "__main__" :
+if __name__ == "__main__":
     make_directories()
     arrange_files()
