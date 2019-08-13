@@ -1,3 +1,6 @@
+"""This script parses the text file which contains the errors generated in the process of cleaning the imb files into
+ three (3) more readable csv files, based on the type of error that occurred. """
+
 import sys
 import pathlib2
 import pandas
